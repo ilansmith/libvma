@@ -128,6 +128,7 @@ public:
 
 	virtual  const std::string to_str() const;
 
+	/* XXX why is this different than the neigh and link events? */
 	netlink_route_info* get_route_info() const { return m_route_info; }
 
 private:

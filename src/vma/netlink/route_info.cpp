@@ -50,7 +50,13 @@ netlink_route_info::~netlink_route_info()
 		delete m_route_val;
 	}
 }
-void netlink_route_info::fill(struct rtnl_route* nl_route_obj) {
+void netlink_route_info::fill(struct rtnl_route* nl_route_obj)
+{
+	/* XXX better to do:
+	 * if (!nl_route_obj)
+	 *         return;
+	 * ...
+	 */
 	if (nl_route_obj) {
 		int table;
 		int scope;
@@ -60,27 +66,27 @@ void netlink_route_info::fill(struct rtnl_route* nl_route_obj) {
 		int oif;
 		in_addr_t gateway;
 		
-		m_route_val = new route_val();
+		m_route_val = new route_val(); /* XXX error checking? */
 		
 		table = rtnl_route_get_table(nl_route_obj);
 		if (table > 0) {
 			m_route_val->set_table_id(table);
-		}
+		} /* XXX else? */
 		
 		scope = rtnl_route_get_scope(nl_route_obj);
 		if (scope > 0) {
 			m_route_val->set_scope(scope);
-		}
+		} /* XXX else? */
 		
 		protocol = rtnl_route_get_protocol(nl_route_obj);
 		if (protocol > 0) {
 			m_route_val->set_protocol(protocol);
-		}
+		} /* XXX else? */
 		
 		type = rtnl_route_get_type(nl_route_obj);
 		if (type > 0) {
 			m_route_val->set_type(type);
-		}
+		} /* XXX else? */
 		
 		addr = rtnl_route_get_dst(nl_route_obj);
 		if (addr) {
@@ -88,12 +94,12 @@ void netlink_route_info::fill(struct rtnl_route* nl_route_obj) {
 			m_route_val->set_dst_mask(htonl(VMA_NETMASK(dst_prefixlen)));
 			m_route_val->set_dst_pref_len(dst_prefixlen);
 			m_route_val->set_dst_addr(*(in_addr_t *) nl_addr_get_binary_addr(addr));
-		}
+		} /* XXX else is it 0? */
 		
 		addr = rtnl_route_get_pref_src(nl_route_obj);
 		if (addr) {
 			m_route_val->set_src_addr(*(in_addr_t *) nl_addr_get_binary_addr(addr));
-		}
+		} /* XXX else is it 0? */
 		
 		oif = nl_object_get_compatible_oif(nl_route_obj);
 		if (oif > 0) {
@@ -101,15 +107,13 @@ void netlink_route_info::fill(struct rtnl_route* nl_route_obj) {
 			char if_name[IFNAMSIZ];
 			if_indextoname(oif, if_name);
 			m_route_val->set_if_name(if_name);
-		}
+		} /* XXX else? */
 		
 		gateway = nl_object_get_compatible_gateway(nl_route_obj);
 		if (gateway != INADDR_ANY) {
 			m_route_val->set_gw(gateway);
 		}
-
 	}
-
 }
 
 

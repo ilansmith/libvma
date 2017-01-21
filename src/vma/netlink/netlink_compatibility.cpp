@@ -112,20 +112,23 @@ int nl_cache_mngr_compatible_add(struct nl_cache_mngr*	mngr, const char* name, c
 	return err;
 }
 
-in_addr_t nl_object_get_compatible_gateway(struct rtnl_route* nl_route_obj) {
+/* XXX why remove nl_object_get_compatible_msgtype() ? */
+in_addr_t nl_object_get_compatible_gateway(struct rtnl_route* nl_route_obj)
+{
 	struct rtnl_nexthop *nh;
 	nh = rtnl_route_nexthop_n(nl_route_obj, 0);
 	if (nh) {
 		struct nl_addr * addr;
 		addr = rtnl_route_nh_get_gateway(nh);
-		if (addr) {
+		if (addr) { /* XXX assert addr->a_addr points to in_addr_t */
 			return *(in_addr_t *) nl_addr_get_binary_addr(addr);
 		}
 	}
 	return INADDR_ANY;
 }
 
-int	nl_object_get_compatible_oif(struct rtnl_route* nl_route_obj) {
+int nl_object_get_compatible_oif(struct rtnl_route* nl_route_obj)
+{
 	struct rtnl_nexthop *nh;
 	nh = rtnl_route_nexthop_n(nl_route_obj, 0);
 	if (nh) {

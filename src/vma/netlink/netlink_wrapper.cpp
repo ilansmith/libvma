@@ -122,8 +122,9 @@ void netlink_wrapper::route_cache_callback(nl_object* obj)
 	struct rtnl_route* route = (struct rtnl_route*) obj;
 	if (route) {
 		int table_id = rtnl_route_get_table(route);
-		if ((table_id > 0) && (table_id != RT_TABLE_LOCAL)) {
-			route_nl_event new_event(g_nl_rcv_arg.msghdr, route, g_nl_rcv_arg.netlink);
+		/* XXX what about RT_TABLE_DEFAULT, table_id >= RT_TABLE_LOCAL ? */
+		if ((table_id > 0 /* XXX RT_TABLE_UNSPEC */) && (table_id != RT_TABLE_LOCAL)) {
+			route_nl_event new_event(g_nl_rcv_arg.msghdr, route, g_nl_rcv_arg.netlink /* XXX this? */);
 			netlink_wrapper::notify_observers(&new_event, nlgrpROUTE);
 		}
 		else {

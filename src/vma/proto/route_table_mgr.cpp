@@ -529,7 +529,7 @@ void route_table_mgr::new_route_event(route_val* netlink_route_val)
 		p_route_val->set_state(true);
 		p_route_val->set_str();
 		p_route_val->print_val();
-		
+
 		++m_tab.entries_num;
 	}
 }

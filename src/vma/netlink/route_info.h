@@ -52,7 +52,8 @@ public:
 private:
 	// fill all attributes using the provided netlink original route
 	void fill(struct rtnl_route* nl_route_obj);
-	
+
+	/* XXX what about stuff that no longer appears here? (priority, etc...) */
 	route_val* m_route_val;
 };
 
