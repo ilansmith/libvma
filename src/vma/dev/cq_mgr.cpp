@@ -394,13 +394,10 @@ bool cq_mgr::request_more_buffers()
 {
 	mem_buf_desc_t *p_temp_desc_list, *p_temp_buff;
 
-	cq_logfuncall("Allocating additional %d buffers for internal use", m_n_sysvar_qp_compensation_level);
-
 	// Assume locked!
 	// Add an additional free buffer descs to RX cq mgr
 	p_temp_desc_list = g_buffer_pool_rx->get_buffers_thread_safe(m_n_sysvar_qp_compensation_level, m_p_ib_ctx_handler);
 	if (p_temp_desc_list == NULL) {
-		cq_logfunc("Out of mem_buf_desc from RX free pool for internal object pool");
 		return false;
 	}
 
@@ -422,7 +419,6 @@ void cq_mgr::return_extra_buffers()
 		return;
 	int buff_to_rel = m_rx_pool.size() - m_n_sysvar_qp_compensation_level;
 
-	cq_logfunc("releasing %d buffers to global rx pool", buff_to_rel);
 	g_buffer_pool_rx->put_buffers_thread_safe(&m_rx_pool, buff_to_rel);
 	m_p_cq_stat->n_buffer_pool_len = m_rx_pool.size();
 }
@@ -430,7 +426,6 @@ void cq_mgr::return_extra_buffers()
 int cq_mgr::poll(vma_ibv_wc* p_wce, int num_entries, uint64_t* p_cq_poll_sn)
 {
 	// Assume locked!!!
-	cq_logfuncall("");
 
 #ifdef RDTSC_MEASURE_RX_VERBS_READY_POLL
 	RDTSC_TAKE_START(g_rdtsc_instr_info_arr[RDTSC_FLOW_RX_VERBS_READY_POLL]);
@@ -477,16 +472,6 @@ int cq_mgr::poll(vma_ibv_wc* p_wce, int num_entries, uint64_t* p_cq_poll_sn)
 	TAKE_POLL_CQ_IN;
 #endif
 
-#ifdef DEFINED_VMAPOLL
-#else
-	if (unlikely(g_vlogger_level >= VLOG_FUNC_ALL)) {
-		for (int i = 0; i < ret; i++) {
-			cq_logfuncall("wce[%d] info wr_id=%x, status=%x, opcode=%x, vendor_err=%x, byte_len=%d, imm_data=%x", i, p_wce[i].wr_id, p_wce[i].status, vma_wc_opcode(p_wce[i]), p_wce[i].vendor_err, p_wce[i].byte_len, p_wce[i].imm_data);
-			cq_logfuncall("qp_num=%x, src_qp=%x, wc_flags=%x, pkey_index=%x, slid=%x, sl=%x, dlid_path_bits=%x", p_wce[i].qp_num, p_wce[i].src_qp, vma_wc_flags(p_wce[i]), p_wce[i].pkey_index, p_wce[i].slid, p_wce[i].sl, p_wce[i].dlid_path_bits);
-		}
-	}
-#endif
-
 	// spoil the global sn if we have packets ready
 	union __attribute__((packed)) {
 		uint64_t global_sn;
@@ -508,7 +493,6 @@ void cq_mgr::process_cq_element_log_helper(mem_buf_desc_t* p_mem_buf_desc, vma_i
 	BULLSEYE_EXCLUDE_BLOCK_START
 	// wce with bad status value
 	if (p_wce->status == IBV_WC_SUCCESS) {
-		cq_logdbg("wce: wr_id=%#x, status=%#x, vendor_err=%#x, qp_num=%#x", p_wce->wr_id, p_wce->status, p_wce->vendor_err, p_wce->qp_num);
 		if (m_b_is_rx_hw_csum_on && ! vma_wc_rx_hw_csum_ok(*p_wce))
 			cq_logdbg("wce: bad rx_csum");
 		cq_logdbg("wce: opcode=%#x, byte_len=%#d, src_qp=%#x, wc_flags=%#x", vma_wc_opcode(*p_wce), p_wce->byte_len, p_wce->src_qp, vma_wc_flags(*p_wce));
@@ -531,16 +515,12 @@ void cq_mgr::process_cq_element_log_helper(mem_buf_desc_t* p_mem_buf_desc, vma_i
 mem_buf_desc_t* cq_mgr::process_cq_element_tx(vma_ibv_wc* p_wce)
 {
 	// Assume locked!!!
-	cq_logfuncall("");
 
 	// Get related mem_buf_desc pointer from the wr_id
 	mem_buf_desc_t* p_mem_buf_desc = (mem_buf_desc_t*)(uintptr_t)p_wce->wr_id;
 
 	if (unlikely(p_wce->status != IBV_WC_SUCCESS)) {
-		process_cq_element_log_helper(p_mem_buf_desc, p_wce);
-
 		if (p_mem_buf_desc == NULL) {
-			cq_logdbg("wce->wr_id = 0!!! When status != IBV_WC_SUCCESS");
 			return NULL;
 		}
 		if (p_mem_buf_desc->p_desc_owner) {
@@ -549,12 +529,10 @@ mem_buf_desc_t* cq_mgr::process_cq_element_tx(vma_ibv_wc* p_wce)
 		}
 		// AlexR: can this wce have a valid mem_buf_desc pointer?
 		// AlexR: are we throwing away a data buffer and a mem_buf_desc element?
-		cq_logdbg("no desc_owner(wr_id=%p, qp_num=%x)", p_wce->wr_id, p_wce->qp_num);
 		return NULL;
 	}
 
 	if (p_mem_buf_desc == NULL) {
-		cq_logdbg("wce->wr_id = 0!!! When status == IBV_WC_SUCCESS");
 		return NULL;
 	}
 
@@ -564,7 +542,6 @@ mem_buf_desc_t* cq_mgr::process_cq_element_tx(vma_ibv_wc* p_wce)
 mem_buf_desc_t* cq_mgr::process_cq_element_rx(vma_ibv_wc* p_wce)
 {
 	// Assume locked!!!
-	cq_logfuncall("");
 
 	// Get related mem_buf_desc pointer from the wr_id
 	mem_buf_desc_t* p_mem_buf_desc = (mem_buf_desc_t*)(uintptr_t)p_wce->wr_id;
@@ -583,16 +560,12 @@ mem_buf_desc_t* cq_mgr::process_cq_element_rx(vma_ibv_wc* p_wce)
 	if (unlikely(bad_wce || p_mem_buf_desc == NULL)) {
 		if (p_mem_buf_desc == NULL) {
 			m_p_next_rx_desc_poll = NULL;
-			cq_logdbg("wce->wr_id = 0!!! When status == IBV_WC_SUCCESS");
 			return NULL;
 		}
-
-		process_cq_element_log_helper(p_mem_buf_desc, p_wce);
 
 		m_p_next_rx_desc_poll = NULL;
 
 		if (p_mem_buf_desc == NULL) {
-			cq_logdbg("wce->wr_id = 0!!! When status != IBV_WC_SUCCESS");
 			return NULL;
 		}
 		if (p_mem_buf_desc->p_desc_owner) {
@@ -601,7 +574,6 @@ mem_buf_desc_t* cq_mgr::process_cq_element_rx(vma_ibv_wc* p_wce)
 		}
 		// AlexR: can this wce have a valid mem_buf_desc pointer?
 		// AlexR: are we throwing away a data buffer and a mem_buf_desc element?
-		cq_logdbg("no desc_owner(wr_id=%p, qp_num=%x)", p_wce->wr_id, p_wce->qp_num);
 		return NULL;
 	}
 
@@ -688,11 +660,6 @@ void cq_mgr::reclaim_recv_buffer_helper(mem_buf_desc_t* buff)
 #endif // DEFINED_VMAPOLL
 			mem_buf_desc_t* temp = NULL;
 			while (buff) {
-			#if _VMA_LIST_DEBUG
-				if (buff->buffer_node.is_list_member()) {
-					vlog_printf(VLOG_WARNING, "cq_mgr::reclaim_recv_buffer_helper - buff is already a member in a list , id = %s\n", buff->buffer_node.list_id());
-				}
-			#endif
 				temp = buff;
 				buff = temp->p_next_desc;
 				temp->p_next_desc = NULL;
@@ -716,7 +683,6 @@ void cq_mgr::reclaim_recv_buffer_helper(mem_buf_desc_t* buff)
 			m_p_cq_stat->n_buffer_pool_len = m_rx_pool.size();
 		}
 		else {
-			cq_logfunc("Buffer returned to wrong CQ");
 			g_buffer_pool_rx->put_buffers_thread_safe(buff);
 		}
 	}
@@ -728,11 +694,6 @@ void cq_mgr::vma_poll_reclaim_recv_buffer_helper(mem_buf_desc_t* buff)
 	if (buff->dec_ref_count() <= 1) {
 		mem_buf_desc_t* temp = NULL;
 		while (buff) {
-		#if _VMA_LIST_DEBUG
-			if (buff->node.is_list_member()) {
-				vlog_printf(VLOG_WARNING, "cq_mgr::reclaim_recv_buffer_helper - buff is already a member in a list , id = %s\n", buff->node.list_id());
-			}
-		#endif
 			if(buff->lwip_pbuf_dec_ref_count() <= 0) {
 				temp = buff;
 				buff = temp->p_next_desc;
@@ -766,11 +727,6 @@ int cq_mgr::vma_poll_reclaim_single_recv_buffer_helper(mem_buf_desc_t* buff)
 {
 	int ref_cnt = buff->lwip_pbuf_dec_ref_count();
 	if (ref_cnt <= 0) {
-		#if _VMA_LIST_DEBUG
-			if (buff->node.is_list_member()) {
-				vlog_printf(VLOG_WARNING, "cq_mgr::reclaim_recv_buffer_helper - buff is already a member in a list , id = %s\n", buff->node.list_id());
-			}
-		#endif
 
 		//TBD: add check: buff->get_ref_count() <= 0 otherwise return with error
 		//(since that mean free_packet wasn't called)
@@ -896,7 +852,6 @@ int cq_mgr::vma_poll_and_process_element_rx(mem_buf_desc_t **p_desc_lst)
 int cq_mgr::poll_and_process_helper_rx(uint64_t* p_cq_poll_sn, void* pv_fd_ready_array)
 {
 	// Assume locked!!!
-	cq_logfuncall("");
 
 #ifdef DEFINED_VMAPOLL
 	NOT_IN_USE(p_cq_poll_sn);
@@ -989,7 +944,6 @@ int cq_mgr::poll_and_process_helper_rx(uint64_t* p_cq_poll_sn, void* pv_fd_ready
 int cq_mgr::poll_and_process_helper_tx(uint64_t* p_cq_poll_sn)
 {
 	// Assume locked!!!
-	cq_logfuncall("");
 	
 #ifdef DEFINED_VMAPOLL
 	int ret = 0;
@@ -1206,13 +1160,11 @@ inline volatile struct mlx5_cqe64 *cq_mgr::mlx5_get_cqe64(volatile struct mlx5_c
 
 int cq_mgr::poll_and_process_element_rx(uint64_t* p_cq_poll_sn, void* pv_fd_ready_array /*=NULL*/)
 {
-	cq_logfuncall("");
 	return poll_and_process_helper_rx(p_cq_poll_sn, pv_fd_ready_array);
 }
 
 int cq_mgr::poll_and_process_element_tx(uint64_t* p_cq_poll_sn)
 {
-	cq_logfuncall("");
 	return poll_and_process_helper_tx(p_cq_poll_sn);
 }
 
@@ -1248,7 +1200,6 @@ bool cq_mgr::reclaim_recv_buffers_no_lock(descq_t *rx_reuse)
 
 bool cq_mgr::reclaim_recv_buffers(descq_t *rx_reuse)
 {
-	cq_logfuncall("");
 	// Called from outside cq_mgr context which is not locked!!
 	while (!rx_reuse->empty()) {
 		mem_buf_desc_t* buff = rx_reuse->get_and_pop_front();
@@ -1470,17 +1421,13 @@ int cq_mgr::drain_and_proccess(uintptr_t* p_recycle_buffers_last_wr_id /*=NULL*/
 int cq_mgr::request_notification(uint64_t poll_sn)
 {
 	int ret = -1;
-	cq_logfuncall("");
 
 	if ((m_n_global_sn > 0 && poll_sn != m_n_global_sn)) {
 		// The cq_mgr's has receive packets pending processing (or got processed since cq_poll_sn)
-		cq_logfunc("miss matched poll sn (user=0x%lx, cq=0x%lx)", poll_sn, m_n_cq_poll_sn);
 		return 1;
 	}
 
 	if (m_b_notification_armed == false) {
-
-		cq_logfunc("arming cq_mgr notification channel");
 
 		// Arm the CQ notification channel
 		IF_VERBS_FAILURE(ibv_req_notify_cq(m_p_ibv_cq, 0)) {
@@ -1497,14 +1444,11 @@ int cq_mgr::request_notification(uint64_t poll_sn)
 		ret = 0;
 	}
 
-	cq_logfuncall("returning with %d", ret);
 	return ret;
 }
 
 int cq_mgr::wait_for_notification_and_process_element(uint64_t* p_cq_poll_sn, void* pv_fd_ready_array)
 {
-	cq_logfunc("");
-
 	int ret = -1;
 	if (m_b_notification_armed) {
 		cq_mgr* p_cq_mgr_context = NULL;
@@ -1513,7 +1457,6 @@ int cq_mgr::wait_for_notification_and_process_element(uint64_t* p_cq_poll_sn, vo
 
 		// Block on the cq_mgr's notification event channel
 		IF_VERBS_FAILURE(ibv_get_cq_event(m_comp_event_channel, &p_cq_hndl, &p)) {
-			cq_logfunc("waiting on cq_mgr event returned with error (errno=%d %m)", errno);
 		}
 		else {
 			p_cq_mgr_context = (cq_mgr*)p;
@@ -1538,7 +1481,6 @@ int cq_mgr::wait_for_notification_and_process_element(uint64_t* p_cq_poll_sn, vo
 		} ENDIF_VERBS_FAILURE;
 	}
 	else {
-		cq_logfunc("notification channel is not armed");
 		errno = EAGAIN;
 	}
 

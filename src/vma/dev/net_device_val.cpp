@@ -539,7 +539,6 @@ ring* net_device_val::reserve_ring(IN resource_allocation_key key)
 
 bool net_device_val::release_ring(IN resource_allocation_key key)
 {
-	nd_logfunc("");
 	auto_unlocker lock(m_lock);
 	key = ring_key_redirection_release(key);
 	rings_hash_map_t::iterator ring_iter = m_h_ring_map.find(key);
@@ -548,8 +547,6 @@ bool net_device_val::release_ring(IN resource_allocation_key key)
 		if ( TEST_REF_CNT_ZERO ) {
 			int num_ring_rx_fds = THE_RING->get_num_resources();
 			int *ring_rx_fds_array = THE_RING->get_rx_channel_fds();
-			nd_logdbg("Deleting RING %p for key %#x and removing notification fd from global_table_mgr_epfd (epfd=%d)", THE_RING, key,
-					g_p_net_device_table_mgr->global_ring_epfd_get());
 			for (int i = 0; i < num_ring_rx_fds; i++) {
 				int cq_ch_fd = ring_rx_fds_array[i];
 				BULLSEYE_EXCLUDE_BLOCK_START
@@ -562,9 +559,6 @@ bool net_device_val::release_ring(IN resource_allocation_key key)
 
 			delete THE_RING;
 			m_h_ring_map.erase(ring_iter);
-		}
-		else {
-			nd_logdbg("Deref usage of RING %p for key %#x (count is %d)", THE_RING, key, RING_REF_CNT);
 		}
 		return true;
 	}
@@ -611,12 +605,9 @@ resource_allocation_key net_device_val::ring_key_redirection_release(IN resource
 	if (!safe_mce_sys().ring_limit_per_interface) return ret_key;
 
 	if (m_h_ring_key_redirection_map.find(key) == m_h_ring_key_redirection_map.end()) {
-		nd_logdbg("key = %lu is not found in the redirection map", key);
 		return ret_key;
 	}
 
-	nd_logdbg("release redirecting key=%lu (ref-count:%d) to key=%lu", key,
-			m_h_ring_key_redirection_map[key].second, m_h_ring_key_redirection_map[key].first);
 	ret_key = m_h_ring_key_redirection_map[key].first;
 	if (--m_h_ring_key_redirection_map[key].second == 0) {
 		m_h_ring_key_redirection_map.erase(key);

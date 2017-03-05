@@ -80,7 +80,6 @@ resource_allocation_key ring_allocation_logic::get_res_key_by_logic()
 	BULLSEYE_EXCLUDE_BLOCK_START
 	default:
 		//not suppose to get here
-		ral_logdbg("non-valid ring logic = %d", m_ring_allocation_logic);
 		break;
 	BULLSEYE_EXCLUDE_BLOCK_END
 	}
@@ -116,8 +115,6 @@ bool ring_allocation_logic::should_migrate_ring()
 		return false;
 	}
 
-	ral_logfuncall("currently accessed from thread=%lu, cpu=%d", pthread_self(), sched_getcpu());
-
 	int count_max = m_ring_migration_ratio;
 	if (m_migration_candidate) {
 		count_max = CANDIDATE_STABILITY_ROUNDS;
@@ -145,7 +142,6 @@ bool ring_allocation_logic::should_migrate_ring()
 		return false;
 	}
 
-	ral_logdbg("migrating from ring of id=%lu to ring of id=%lu", m_res_key, m_migration_candidate);
 	m_migration_candidate = 0;
 
 	return true;
@@ -210,7 +206,6 @@ int cpu_manager::reserve_cpu_for_thread(pthread_t tid, int suggested_cpu /* = NO
 		}
 		CPU_ZERO(&cpu_set);
 		CPU_SET(cpu, &cpu_set);
-		__log_dbg("attach tid=%lu running on cpu=%d to cpu=%d", tid, sched_getcpu(), cpu);
 		ret = pthread_setaffinity_np(tid, sizeof(cpu_set_t), &cpu_set);
 		if (ret) {
 			unlock();

@@ -511,10 +511,6 @@ void buffer_pool::buffersPanic()
 		// print mu & lambda of circle
 		Floyd_LogCircleInfo(m_p_head);
 	}
-	else
-	{
-		__log_info_info("no circle was found in buffer_pool");
-	}
 
 	// log backtrace
 	const int MAX_BACKTRACE = 25;
@@ -535,7 +531,6 @@ void buffer_pool::buffersPanic()
 inline void buffer_pool::put_buffers(mem_buf_desc_t *buff_list)
 {
 	mem_buf_desc_t *next;
-	__log_info_funcall("returning list, present %lu, created %lu", m_n_buffers, m_n_buffers_created);
 	while (buff_list) {
 		next = buff_list->p_next_desc;
 		put_buffer_helper(buff_list);
@@ -557,7 +552,6 @@ void buffer_pool::put_buffers(descq_t *buffers, size_t count)
 {
 	mem_buf_desc_t *buff_list, *next;
 	size_t amount;
-	__log_info_funcall("returning %lu, present %lu, created %lu", count, m_n_buffers, m_n_buffers_created);
 	for (amount = MIN(count, buffers->size()); amount > 0 ; amount--) {
 		buff_list = buffers->get_and_pop_back();
 		while (buff_list) {

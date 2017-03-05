@@ -128,7 +128,6 @@ inline ssize_t sockinfo_udp::poll_os()
 	ret = orig_os_api.poll(os_fd, 1, 0); // Zero timeout - just poll and return quickly
 	if (unlikely(ret == -1)) {
 		m_p_socket_stats->counters.n_rx_os_errors++;
-		si_udp_logdbg("orig_os_api.poll returned with error in polling loop (errno=%d %m)", errno);
 		return -1;
 	}
 	if (ret == 1) {
@@ -181,12 +180,10 @@ inline int sockinfo_udp::rx_wait(bool blocking)
 
 		if (unlikely(m_b_closed)) {
 			errno = EBADFD;
-			si_udp_logdbg("returning with: EBADFD");
 			return -1;
 		}
 		else if (unlikely(g_b_exit)) {
 			errno = EINTR;
-			si_udp_logdbg("returning with: EINTR");
 			return -1;
 		}
 	} // End polling loop
@@ -195,12 +192,10 @@ inline int sockinfo_udp::rx_wait(bool blocking)
 	while (blocking) {
 		if (unlikely(m_b_closed)) {
 			errno = EBADFD;
-			si_udp_logdbg("returning with: EBADFD");
 			return -1;
 		}
 		else if (unlikely(g_b_exit)) {
 			errno = EINTR;
-			si_udp_logdbg("returning with: EINTR");
 			return -1;
 		}
 
@@ -247,12 +242,6 @@ inline int sockinfo_udp::rx_wait(bool blocking)
 		}
 
 		if (unlikely(ret == -1)) {
-			if (errno == EINTR) {
-				si_udp_logdbg("EINTR from blocked epoll_wait() (ret=%d, errno=%d %m)", ret, errno);
-			}
-			else {
-				si_udp_logdbg("error from blocked epoll_wait() (ret=%d, errno=%d %m)", ret, errno);
-			}
 
 			m_p_socket_stats->counters.n_rx_os_errors++;
 			return -1;
@@ -323,7 +312,6 @@ inline int sockinfo_udp::rx_wait(bool blocking)
 	}
 */
 	errno = EAGAIN;
-	si_udp_logfunc("returning with: EAGAIN");
 	return -1;
 }
 
@@ -1262,8 +1250,6 @@ ssize_t sockinfo_udp::rx(const rx_call_t call_type, iovec* p_iov,ssize_t sz_iov,
 	int out_flags = 0;
 	int in_flags = *p_flags;
 
-	si_udp_logfunc("");
-	
 	m_lock_rcv.lock();
 
 	if (unlikely(m_b_closed)) {
@@ -1280,8 +1266,6 @@ ssize_t sockinfo_udp::rx(const rx_call_t call_type, iovec* p_iov,ssize_t sz_iov,
 #ifdef VMA_TIME_MEASURE
 	TAKE_T_RX_START;
 #endif
-	save_stats_threadid_rx();
-
 	int rx_wait_ret;
 
 	return_reuse_buffers_postponed();
@@ -1378,13 +1362,11 @@ out:
 #ifdef VMA_TIME_MEASURE
 		INC_ERR_RX_COUNT;
 #endif
-		si_udp_logfunc("returning with: %d (errno=%d %m)", ret, errno);
 	}
 	else {
 #ifdef VMA_TIME_MEASURE
 		TAKE_T_RX_END;
 #endif
-		si_udp_logfunc("returning with: %d", ret);
 	}
 	return ret;
 }
@@ -1506,21 +1488,17 @@ void sockinfo_udp::unset_immediate_os_sample()
 
 bool sockinfo_udp::is_readable(uint64_t *p_poll_sn, fd_array_t* p_fd_ready_array)
 {
-	si_udp_logfuncall("");
-
 	// Check local list of ready rx packets
 	// This is the quickest way back to the user with a ready packet (which will happen if we don't force draining of the CQ)
 	if (m_n_rx_pkt_ready_list_count > 0) {
 
 		if (m_n_sysvar_rx_cq_drain_rate_nsec == MCE_RX_CQ_DRAIN_RATE_DISABLED) {
-			si_udp_logfunc("=> true (ready count = %d packets / %d bytes)", m_n_rx_pkt_ready_list_count, m_p_socket_stats->n_rx_ready_byte_count);
 			return true;
 		}
 		else {
 			tscval_t tsc_now = TSCVAL_INITIALIZER;
 			gettimeoftsc(&tsc_now);
 			if (tsc_now - g_si_tscv_last_poll < m_n_sysvar_rx_delta_tsc_between_cq_polls) {
-				si_udp_logfunc("=> true (ready count = %d packets / %d bytes)", m_n_rx_pkt_ready_list_count, m_p_socket_stats->n_rx_ready_byte_count);
 				return true;
 			}
 
@@ -1534,8 +1512,7 @@ bool sockinfo_udp::is_readable(uint64_t *p_poll_sn, fd_array_t* p_fd_ready_array
 	// Loop on rx cq_list and process waiting wce (non blocking! polling only from this context)
 	// AlexR todo: would be nice to start after the last cq_pos for better cq coverage
 	if (p_poll_sn) {
-		consider_rings_migration();
-		si_udp_logfuncall("try poll rx cq's");
+		consider_rings_migration(); /* XXX */
 		rx_ring_map_t::iterator rx_ring_iter;
 		m_rx_ring_map_lock.lock();
 		for (rx_ring_iter = m_rx_ring_map.begin(); rx_ring_iter != m_rx_ring_map.end(); rx_ring_iter++) {
@@ -1553,7 +1530,6 @@ bool sockinfo_udp::is_readable(uint64_t *p_poll_sn, fd_array_t* p_fd_ready_array
 				/* else (ret > 0) - at least one processed wce */
 				if (m_n_rx_pkt_ready_list_count) {
 					// Get out of the CQ polling loop
-					si_udp_logfunc("=> polled true (ready count = %d packets / %d bytes)", m_n_rx_pkt_ready_list_count, m_p_socket_stats->n_rx_ready_byte_count);
 					m_rx_ring_map_lock.unlock();
 					return true;
 				}
@@ -1566,18 +1542,15 @@ bool sockinfo_udp::is_readable(uint64_t *p_poll_sn, fd_array_t* p_fd_ready_array
 	// This check is added in case we processed all wce and drained the cq
 	//TODO: handle the scenario of 2 thread accessing the same socket - might need to lock m_n_rx_pkt_ready_list_count
 	if (m_n_rx_pkt_ready_list_count) {
-		si_udp_logfunc("=> true (ready count = %d packets / %d bytes)", m_n_rx_pkt_ready_list_count, m_p_socket_stats->n_rx_ready_byte_count);
 		return true;
 	}
 
 	// Not ready packets in ready queue, return false
-	si_udp_logfuncall("=> false (ready count = %d packets / %d bytes)", m_n_rx_pkt_ready_list_count, m_p_socket_stats->n_rx_ready_byte_count);
 	return false;
 }
 
 int sockinfo_udp::rx_request_notification(uint64_t poll_sn)
 {
-	si_udp_logfuncall("");
 	int ring_ready_count = 0, ring_armed_count = 0;
 	rx_ring_map_t::iterator rx_ring_iter;
 	m_rx_ring_map_lock.lock();
@@ -1592,13 +1565,9 @@ int sockinfo_udp::rx_request_notification(uint64_t poll_sn)
 			// cq armed
 			ring_armed_count++;
 		}
-		else { //if (ret < 0) 
-			si_udp_logerr("failure from ring[%p]->request_notification() (errno=%d %m)", p_ring, errno);
-		}
 	}
 	m_rx_ring_map_lock.unlock();
 
-	si_udp_logfunc("armed or busy %d ring(s) and %d ring are pending processing", ring_armed_count, ring_ready_count);
 	return ring_ready_count;
 }
 
@@ -1609,8 +1578,6 @@ ssize_t sockinfo_udp::tx(const tx_call_t call_type, const struct iovec* p_iov, c
 	bool is_dropped = false;
 	bool is_dummy = IS_DUMMY_PACKET(__flags);
 	dst_entry* p_dst_entry = m_p_connected_dst_entry; // Default for connected() socket but we'll update it on a specific sendTO(__to) call
-
-	si_udp_logfunc("");
 
 	m_lock_snd.lock();
 
@@ -1625,15 +1592,12 @@ ssize_t sockinfo_udp::tx(const tx_call_t call_type, const struct iovec* p_iov, c
 
 	if (__dst != NULL) {
 		if (unlikely(__dstlen < sizeof(struct sockaddr_in))) {
-			si_udp_logdbg("going to os, dstlen < sizeof(struct sockaddr_in), dstlen = %d", __dstlen);
 			goto tx_packet_to_os;
 		}
 		if (unlikely(get_sa_family(__dst) != AF_INET)) {
-			si_udp_logdbg("to->sin_family != AF_INET (tx-ing to os)");
 			goto tx_packet_to_os;
 		}
 		if (unlikely(__flags & MSG_OOB)) {
-			si_udp_logdbg("MSG_OOB not supported in UDP (tx-ing to os)");
 			goto tx_packet_to_os;
 		}
 
@@ -1703,7 +1667,6 @@ ssize_t sockinfo_udp::tx(const tx_call_t call_type, const struct iovec* p_iov, c
 	}
 
 	if (unlikely(!p_dst_entry)) {
-		si_udp_logdbg("going to os, __dst = %p, m_p_connected_dst_entry = %p", __dst, m_p_connected_dst_entry);
 		goto tx_packet_to_os;
 	}
 
@@ -1777,21 +1740,15 @@ bool sockinfo_udp::rx_input_cb(mem_buf_desc_t* p_desc, void* pv_fd_ready_array)
 {
 	// Check that sockinfo is bound to the packets dest port
 	if (unlikely(p_desc->rx.dst.sin_port != m_bound.get_in_port())) {
-		si_udp_logfunc("rx packet discarded - not socket's bound port (pkt: %d, sock:%s)",
-		           ntohs(p_desc->rx.dst.sin_port), m_bound.to_str_in_port());
 		return false;
 	}
 
 	if (m_connected.get_in_port() != INPORT_ANY && m_connected.get_in_addr() != INADDR_ANY) {
 		if (unlikely(m_connected.get_in_port() != p_desc->rx.src.sin_port)) {
-			si_udp_logfunc("rx packet discarded - not socket's connected port (pkt: %d, sock:%s)",
-				   ntohs(p_desc->rx.src.sin_port), m_connected.to_str_in_port());
 			return false;
 		}
 
 		if (unlikely(m_connected.get_in_addr() != p_desc->rx.src.sin_addr.s_addr)) {
-			si_udp_logfunc("rx packet discarded - not socket's connected port (pkt: [%d:%d:%d:%d], sock:[%s])",
-				   NIPQUAD(p_desc->rx.src.sin_addr.s_addr), m_connected.to_str_in_addr());
 			return false;
 		}
 	}
@@ -1800,8 +1757,6 @@ bool sockinfo_udp::rx_input_cb(mem_buf_desc_t* p_desc, void* pv_fd_ready_array)
 	// in linux, loopback control (set by setsockopt) is done in TX flow.
 	// since we currently can't control it in TX, we behave like windows, which filter on RX
 	if (unlikely(!m_b_mc_tx_loop && p_desc->rx.udp.local_if == p_desc->rx.src.sin_addr.s_addr)) {
-		si_udp_logfunc("rx packet discarded - loopback is disabled (pkt: [%d:%d:%d:%d], sock:%s)",
-			NIPQUAD(p_desc->rx.src.sin_addr.s_addr), m_bound.to_str_in_addr());
 		return false;
 	}
 
@@ -1828,14 +1783,12 @@ bool sockinfo_udp::rx_input_cb(mem_buf_desc_t* p_desc, void* pv_fd_ready_array)
 
 	// Check if sockinfo rx byte quato reached - then disregard this packet
 	if (unlikely(m_p_socket_stats->n_rx_ready_byte_count >= m_p_socket_stats->n_rx_ready_byte_limit)) {
-		si_udp_logfunc("rx packet discarded - socket limit reached (%d bytes)", m_p_socket_stats->n_rx_ready_byte_limit);
 		m_p_socket_stats->counters.n_rx_ready_byte_drop += p_desc->rx.sz_payload;
 		m_p_socket_stats->counters.n_rx_ready_pkt_drop++;
 		return false;
 	}
 
 	if (unlikely(m_b_closed) || unlikely(g_b_exit)) {
-		si_udp_logfunc("rx packet discarded - fd closed");
 		return false;
 	}
 
@@ -1847,7 +1800,6 @@ bool sockinfo_udp::rx_input_cb(mem_buf_desc_t* p_desc, void* pv_fd_ready_array)
 			if ((m_mc_memberships_map.find(mc_grp) == m_mc_memberships_map.end()) ||
 				((0 < m_mc_memberships_map[mc_grp].size()) &&
 				(m_mc_memberships_map[mc_grp].find(mc_src) == m_mc_memberships_map[mc_grp].end()))) {
-				si_udp_logfunc("rx packet discarded - multicast source mismatch");
 				return false;
 			}
 		}
@@ -1899,7 +1851,6 @@ bool sockinfo_udp::rx_input_cb(mem_buf_desc_t* p_desc, void* pv_fd_ready_array)
 		                                &pkt_info, m_rx_callback_context);
 
 		if (callback_retval == VMA_PACKET_DROP) {
-			si_udp_logfunc("rx packet discarded - by user callback");
 			return false;
 		}
 	}
@@ -1970,8 +1921,6 @@ bool sockinfo_udp::rx_input_cb(mem_buf_desc_t* p_desc, void* pv_fd_ready_array)
 	 * in such case and as a result update_fd_array() call means nothing
 	 */
 	io_mux_call::update_fd_array((fd_array_t*)pv_fd_ready_array, m_fd);
-
-	si_udp_logfunc("rx ready count = %d packets / %d bytes", m_n_rx_pkt_ready_list_count, m_p_socket_stats->n_rx_ready_byte_count);
 
 	// Yes we like this packet - keep it!
 #endif // DEFINED_VMAPOLL
@@ -2411,7 +2360,6 @@ int sockinfo_udp::zero_copy_rx(iovec *p_iov, mem_buf_desc_t *p_desc, int *p_flag
 
 	m_p_socket_stats->n_rx_zcopy_pkt_count++;
 
-	si_udp_logfunc("copied pointers to %d bytes to user buffer", total_rx);
 	return total_rx;
 }
 

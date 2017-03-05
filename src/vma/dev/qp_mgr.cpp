@@ -288,7 +288,6 @@ void qp_mgr::release_rx_buffers()
 {
 	int total_ret = m_curr_rx_wr;
 	if (m_curr_rx_wr) {
-		qp_logdbg("Returning %d pending post_recv buffers to CQ owner", m_curr_rx_wr);
 		while (m_curr_rx_wr) {
 			--m_curr_rx_wr;
 			mem_buf_desc_t* p_mem_buf_desc = (mem_buf_desc_t*)(uintptr_t)m_ibv_rx_wr_array[m_curr_rx_wr].wr_id;
@@ -302,13 +301,11 @@ void qp_mgr::release_rx_buffers()
 	}
 
 	// Wait for all FLUSHed WQE on Rx CQ
-	qp_logdbg("draining rx cq_mgr %p (last_posted_rx_wr_id = %x)", m_p_cq_mgr_rx, m_last_posted_rx_wr_id);
 	uintptr_t last_polled_rx_wr_id = 0;
 	while (m_p_cq_mgr_rx && last_polled_rx_wr_id != m_last_posted_rx_wr_id) {
 
 		// Process the FLUSH'ed WQE's
 		int ret = m_p_cq_mgr_rx->drain_and_proccess(&last_polled_rx_wr_id);
-		qp_logdbg("draining completed on rx cq_mgr (%d wce)", ret);
 		total_ret += ret;
 
 		// Add short delay (500 usec) to allow for WQE's to be flushed to CQ every poll cycle
@@ -316,16 +313,13 @@ void qp_mgr::release_rx_buffers()
 		nanosleep(&short_sleep, NULL);
 	}
 	m_last_posted_rx_wr_id = 0; // Clear the posted WR_ID flag, we just clear the entier RQ
-	qp_logdbg("draining completed with a total of %d wce's on rx cq_mgr", total_ret);
 }
 
 void qp_mgr::release_tx_buffers()
 {
 	int ret = 0;
 	uint64_t poll_sn;
-	qp_logdbg("draining tx cq_mgr %p", m_p_cq_mgr_tx);
 	while (m_p_cq_mgr_tx && (ret = m_p_cq_mgr_tx->poll_and_process_element_tx(&poll_sn)) > 0) {
-		qp_logdbg("draining completed on tx cq_mgr (%d wce)", ret);
 	}
 }
 

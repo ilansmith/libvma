@@ -169,20 +169,14 @@ public:
 	}
 
 	~vma_list_t() {
-		if (! empty()) {
-			vlog_printf(VLOG_WARNING,"vma_list_t destructor is not supported for non-empty list (list_counter=%d).\n", (int)m_size);
-		}
 	}
 
 	vma_list_t<T, offset> (const vma_list_t<T, offset> & other) {
-		if (!other.empty())
-			vlog_printf(VLOG_WARNING,"vma_list_t copy constructor is not supported for non-empty list (other.list_counter=%d).\n", (int)other.m_size);
+		NOT_IN_USE(other);
 		init_list();
 	}
 
 	vma_list_t<T, offset> & operator=(const vma_list_t<T, offset> & other) {
-		if (!empty() || !other.empty())
-			vlog_printf(VLOG_WARNING,"vma_list_t operator= is not supported for non-empty list (list_counter=%d, other.list_counter=%d).\n", (int)m_size, (int)other.m_size);
 		if (this != &other) {
 			init_list();
 		}
@@ -235,7 +229,6 @@ public:
 
 	void erase(T* obj){
 		if (unlikely(!obj)) {
-			vlog_printf(VLOG_WARNING,"vma_list_t.erase() got NULL object - ignoring.\n");
 			return;
 		}
 	#if _VMA_LIST_DEBUG
@@ -257,7 +250,6 @@ public:
 
 	void push_back(T* obj){
 		if (unlikely(!obj)) {
-			vlog_printf(VLOG_WARNING,"vma_list_t.push_back() got NULL object - ignoring.\n");
 			return;
 		}
 		if (unlikely(GET_NODE(obj, T, offset)->is_list_member())) {
@@ -277,7 +269,6 @@ public:
 
 	void push_front(T* obj){
 		if (unlikely(!obj)) {
-			vlog_printf(VLOG_WARNING,"vma_list_t.push_front() got NULL object - ignoring.\n");
 			return;
 		}
 		if (unlikely(GET_NODE(obj, T, offset)->is_list_member())) {

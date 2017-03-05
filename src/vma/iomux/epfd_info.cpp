@@ -99,15 +99,7 @@ inline void epfd_info::decrease_ring_ref_count_no_lock(ring* ring)
 		int *ring_rx_fds_array = ring->get_rx_channel_fds();
 		for (int i = 0; i < num_ring_rx_fds; i++) {
 			// delete cq fd from epfd
-			int ret = orig_os_api.epoll_ctl(m_epfd, EPOLL_CTL_DEL, ring_rx_fds_array[i], NULL);
-			BULLSEYE_EXCLUDE_BLOCK_START
-			if (ret < 0) {
-				__log_dbg("failed to remove cq fd=%d from epfd=%d (errno=%d %m)",
-						ring_rx_fds_array[i], m_epfd, errno);
-			} else {
-				__log_dbg("remove cq fd=%d from epfd=%d", ring_rx_fds_array[i], m_epfd);
-			}
-			BULLSEYE_EXCLUDE_BLOCK_END
+			orig_os_api.epoll_ctl(m_epfd, EPOLL_CTL_DEL, ring_rx_fds_array[i], NULL);
 		}
 	}
 }

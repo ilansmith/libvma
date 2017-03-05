@@ -49,7 +49,6 @@ inline void rfs::prepare_filter_attach(int& filter_counter, rule_filter_map_t::i
 
 	filter_iter = m_p_rule_filter->m_map.find(m_p_rule_filter->m_key);
 	if (filter_iter == m_p_rule_filter->m_map.end()) {
-		rfs_logdbg("No matching counter for filter!!!");
 		return;
 	}
 
@@ -74,7 +73,6 @@ inline void rfs::prepare_filter_detach(int& filter_counter)
 
 	rule_filter_map_t::iterator filter_iter = m_p_rule_filter->m_map.find(m_p_rule_filter->m_key);
 	if (filter_iter == m_p_rule_filter->m_map.end()) {
-		rfs_logdbg("No matching counter for filter!!!");
 		return;
 	}
 
@@ -151,12 +149,9 @@ bool rfs::add_sink(pkt_rcvr_sink* p_sink)
 {
 	uint32_t i;
 
-	rfs_logfunc("called with sink (%p)", p_sink);
-
 	// Check all sinks list array if already exists.
 	for (i = 0; i < m_n_sinks_list_entries; ++i) {
 		if (m_sinks_list[i] == p_sink) {
-			rfs_logdbg("sink (%p) already registered!!!", p_sink);
 			return true;
 		}
 	}
@@ -181,15 +176,12 @@ bool rfs::add_sink(pkt_rcvr_sink* p_sink)
 	m_sinks_list[m_n_sinks_list_entries] = p_sink;
 	++m_n_sinks_list_entries;
 
-	rfs_logdbg("Added new sink (%p), num of sinks is now: %d", p_sink, m_n_sinks_list_entries);
 	return true;
 }
 
 bool rfs::del_sink(pkt_rcvr_sink* p_sink)
 {
 	uint32_t i;
-
-	rfs_logdbg("called with sink (%p)", p_sink);
 
 	// Find and remove sink
 	for (i = 0; i < m_n_sinks_list_entries; ++i) {
@@ -203,15 +195,9 @@ bool rfs::del_sink(pkt_rcvr_sink* p_sink)
 			m_sinks_list[i] = NULL;
 
 			m_n_sinks_list_entries--;
-			rfs_logdbg("Removed sink (%p), num of sinks is now: %d", p_sink, m_n_sinks_list_entries);
-
-			if (m_n_sinks_list_entries == 0) {
-				rfs_logdbg("rfs sinks list is now empty");
-			}
 			return true;
 		}
 	}
-	rfs_logdbg("sink (%p) not found", p_sink);
 	return false;
 }
 
@@ -233,7 +219,6 @@ bool rfs::attach_flow(pkt_rcvr_sink *sink)
 	if (sink) {
 		ret = add_sink(sink);
 	} else {
-		rfs_logdbg("rfs: Attach flow was called with sink == NULL");
 		ret = true;
 	}
 
@@ -248,8 +233,6 @@ bool rfs::detach_flow(pkt_rcvr_sink *sink)
 	BULLSEYE_EXCLUDE_BLOCK_START
 	if (sink) {
 		ret = del_sink(sink);
-	} else {
-		rfs_logwarn("detach_flow() was called with sink == NULL");
 	}
 	BULLSEYE_EXCLUDE_BLOCK_END
 
@@ -275,7 +258,6 @@ bool rfs::create_ibv_flow()
 	}
 
 	m_b_tmp_is_attached = true;
-	rfs_logdbg("ibv_create_flow succeeded with flow %s", m_flow_tuple.to_str());
 	return true;
 }
 
@@ -283,9 +265,6 @@ bool rfs::destroy_ibv_flow()
 {
 	for (size_t i = 0; i < m_attach_flow_data_vector.size(); i++) {
 		attach_flow_data_t* iter = m_attach_flow_data_vector[i];
-		if (unlikely(!iter->ibv_flow)) {
-			rfs_logdbg("Destroy of QP flow ID failed - QP flow ID that was not created. This is OK for MC same ip diff port scenario."); //TODO ALEXR - Add info about QP, spec, priority into log msg
-		}
 		
 		ib_ctx_handler* p_ib_ctx_handler = iter->p_qp_mgr->get_ib_ctx_handler(); 
 		if (!p_ib_ctx_handler->is_removed() && iter->ibv_flow) {
@@ -296,7 +275,6 @@ bool rfs::destroy_ibv_flow()
 	}
 
 	m_b_tmp_is_attached = false;
-	rfs_logdbg("ibv_destroy_flow with flow %s", m_flow_tuple.to_str());
 	return true;
 }
 

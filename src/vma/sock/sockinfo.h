@@ -421,7 +421,6 @@ protected:
         else{
             // Retuned buffer to global pool when owner can't be found
             // In case ring was deleted while buffers where still queued
-            vlog_printf(VLOG_DEBUG, "Buffer owner not found\n");
             // Awareness: these are best efforts: decRef without lock in case no CQ
             if(buff->dec_ref_count() <= 1 && (buff->lwip_pbuf.pbuf.ref-- <= 1))
                 g_buffer_pool_rx->put_buffers_thread_safe(buff);

@@ -314,11 +314,6 @@ int ip_frag_manager::add_frag(iphdr *hdr, mem_buf_desc_t *frag, mem_buf_desc_t *
 	key.dst_ip      = hdr->daddr;
 	key.ipproto     = hdr->protocol;
 
-	frag_dbg("Fragment: %d.%d.%d.%d->%d.%d.%d.%d id=%x size=%d",
-		 NIPQUAD(key.src_ip),
-		 NIPQUAD(key.dst_ip),
-		 (int)key.ip_id, (int)ntohs(hdr->tot_len));
-
 #ifdef IP_FRAG_DEBUG
 	if (debug_drop_every_n_pkt && ((++debug_drop_index) % debug_drop_every_n_pkt == 0)) {
 		frag_dbg("XXX debug force dropped XXX");
@@ -335,7 +330,6 @@ int ip_frag_manager::add_frag(iphdr *hdr, mem_buf_desc_t *frag, mem_buf_desc_t *
 	more_frags = frag_off & MORE_FRAGMENTS_FLAG;
 	frag_first = (frag_off & FRAGMENT_OFFSET) * 8;
 	frag_last = frag_first + ntohs(hdr->tot_len) - (hdr->ihl<<2) - 1; // frag starts from 0!!!
-	frag_dbg("> fragment: %d-%d, %s more frags", frag_first, frag_last, more_frags?"pending":"no");
 
 	m_frag_counter++;
 
@@ -343,25 +337,19 @@ int ip_frag_manager::add_frag(iphdr *hdr, mem_buf_desc_t *frag, mem_buf_desc_t *
 
 	if (i == m_frags.end()) {
 		/* new fragment */
-		frag_dbg("> new fragmented packet");
 		desc = new_frag_desc(key);
 	}
 	else {
 		desc = i->second;
 		if ((m_frag_counter - desc->frag_counter) > IP_FRAG_SPACE) {
 			// discard this packet
-			frag_dbg("expiring packet fragments id=%x", i->first);
 			destroy_frag_desc(desc);
 			free_frag_desc(desc);
 			m_frags.erase(i);
 			i = m_frags.end();
 			// Add new fregment
-			frag_dbg("> new fragmented packet");
 			desc = new_frag_desc(key);
 		}
-		else {
-			frag_dbg("> old fragmented packet");
-	}
 	}
 	if (desc==NULL) {
 		MEMBUF_DEBUG_REF_DEC(frag);
@@ -389,8 +377,6 @@ int ip_frag_manager::add_frag(iphdr *hdr, mem_buf_desc_t *frag, mem_buf_desc_t *
 		unlock();
 		return -1;
 	}
-
-	frag_dbg("> found hole: %d-%d", phole->first, phole->last);
 
 	// step 4 - remove hole from list
 	if (phole_prev)
@@ -469,12 +455,10 @@ int ip_frag_manager::add_frag(iphdr *hdr, mem_buf_desc_t *frag, mem_buf_desc_t *
 		m_frags.erase(i);
 		*ret = desc->frag_list;
 		free_frag_desc(desc);
-		frag_dbg("> PACKET ASSEMBLED");
 		PRINT_STATISTICS();
 		unlock();
 		return 0;
 	}
-	frag_dbg("> need more packets");
 
 	*ret = NULL;
 	PRINT_STATISTICS();

@@ -109,10 +109,8 @@ void* event_handler_manager::register_timer_event(int timeout_msec, timer_handle
 
 void event_handler_manager::wakeup_timer_event(timer_handler* handler, void* node)
 {
-	evh_logdbg("timer handler '%p'", handler);
 	BULLSEYE_EXCLUDE_BLOCK_START
 	if (!handler) {
-		evh_logwarn("bad handler (%p)", handler);
 		return;
 	}
 	BULLSEYE_EXCLUDE_BLOCK_END
@@ -335,16 +333,11 @@ int event_handler_manager::start_thread()
 		}
 		BULLSEYE_EXCLUDE_BLOCK_END
 	}
-	else {
-		evh_logdbg("VMA Internal thread affinity not set.");
-	}
 
 
 	int ret = pthread_create(&m_event_handler_tid, &tattr, event_handler_thread, this);	
 	if (ret) {
 		// maybe it's the cset issue? try without affinity
-		evh_logwarn("Failed to start event handler thread with thread affinity - trying without. [errno=%d %s]",
-		            ret, strerror(ret));
 		BULLSEYE_EXCLUDE_BLOCK_START
 		if (pthread_attr_init(&tattr)) {
 			evh_logpanic("Failed to initialize thread attributes");
@@ -357,7 +350,6 @@ int event_handler_manager::start_thread()
 
 	pthread_attr_destroy(&tattr);
 
-	evh_logdbg("Started event handler thread");
 	return 0;
 }
 
@@ -426,8 +418,6 @@ void event_handler_manager::post_new_reg_action(reg_action_t& reg_action)
 		return;
 
 	start_thread();
-
-	evh_logfunc("add event action %s (%d)", reg_action_str(reg_action.type), reg_action.type);
 
 	m_reg_action_q_lock.lock();
 	m_reg_action_q.push_back(reg_action);

@@ -299,7 +299,6 @@ int sockinfo::rx_wait_helper(int &poll_count, bool is_blocking)
 	rx_ring_map_t::iterator rx_ring_iter;
 
 	// poll for completion
-	si_logfunc("");
 
 	poll_count++;
 
@@ -312,7 +311,6 @@ int sockinfo::rx_wait_helper(int &poll_count, bool is_blocking)
 		//BULLSEYE_EXCLUDE_BLOCK_END
 		ret = rx_ring_iter->first->poll_and_process_element_rx(&poll_sn);
 		if (ret > 0) {
-			si_logfuncall("got %d elements sn=%llu", ret, (unsigned long long)poll_sn);
 			return ret;
 		}
 	}
@@ -322,7 +320,6 @@ int sockinfo::rx_wait_helper(int &poll_count, bool is_blocking)
 	}
 
 	// if we polling too much - go to sleep
-	si_logfunc("too many polls without data blocking=%d", is_blocking);
 	if (g_b_exit)
 		return -1;
 
@@ -693,10 +690,6 @@ void sockinfo::do_rings_migration()
 
 			rx_flow_iter->second = new_ring;
 
-			// Registered as receiver successfully
-			si_logdbg("Attached %s to ring %p", flow_key.to_str(), new_ring);
-
-			si_logdbg("Detaching %s from ring %p", flow_key.to_str(), p_old_ring);
 			// Detach tuple
 			unlock_rx_q();
 			p_old_ring->detach_flow(flow_key, this);
@@ -852,7 +845,6 @@ void sockinfo::statistics_print(vlog_levels_t log_level /* = VLOG_DEBUG */)
 
 void sockinfo::rx_add_ring_cb(flow_tuple_with_local_if &flow_key, ring* p_ring, bool is_migration /*= false*/)
 {
-	si_logdbg("");
 	NOT_IN_USE(flow_key);
 	NOT_IN_USE(is_migration);
 
@@ -904,8 +896,6 @@ void sockinfo::rx_add_ring_cb(flow_tuple_with_local_if &flow_key, ring* p_ring, 
 		 *  - do_rings_migration()
 		 */
 		m_p_rx_ring = m_rx_ring_map.begin()->first;
-	} else {
-		si_logdbg("ring map size: %d", m_rx_ring_map.size());
 	}
 #endif // DEFINED_VMAPOLL
 
@@ -924,7 +914,6 @@ void sockinfo::rx_add_ring_cb(flow_tuple_with_local_if &flow_key, ring* p_ring, 
 
 void sockinfo::rx_del_ring_cb(flow_tuple_with_local_if &flow_key, ring* p_ring, bool is_migration /* = false */)
 {
-	si_logdbg("");
 	NOT_IN_USE(flow_key);
 
 	bool notify_epoll = false;
@@ -952,7 +941,7 @@ void sockinfo::rx_del_ring_cb(flow_tuple_with_local_if &flow_key, ring* p_ring, 
 		if (p_ring_info->refcnt == 0) {
 
 			// Get rid of all rx ready buffers from this cq_mgr owner
-			if (!is_migration) move_owned_rx_ready_descs(base_ring, &temp_rx_reuse);
+			if (!is_migration) move_owned_rx_ready_descs(base_ring, &temp_rx_reuse); /* XXX */
 
 			// Move all cq_mgr->rx_reuse buffers to temp reuse queue related to p_rx_cq_mgr
 			move_owned_descs(base_ring, &temp_rx_reuse, &p_ring_info->rx_reuse_info.rx_reuse);

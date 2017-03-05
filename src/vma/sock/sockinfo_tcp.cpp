@@ -1620,7 +1620,6 @@ ssize_t sockinfo_tcp::rx(const rx_call_t call_type, iovec* p_iov, ssize_t sz_iov
 
 	m_loops_timer.start();
 
-	si_tcp_logfuncall("");
 	if (unlikely(m_sock_offload != TCP_SOCK_LWIP)) {
 #ifdef VMA_TIME_MEASURE
 		INC_GO_TO_OS_RX_COUNT;
@@ -1643,7 +1642,6 @@ ssize_t sockinfo_tcp::rx(const rx_call_t call_type, iovec* p_iov, ssize_t sz_iov
 			return 0;
 	}
 
-	si_tcp_logfunc("rx: iov=%p niovs=%d", p_iov, sz_iov);
 	 /* poll rx queue till we have something */
 	lock_tcp_con();
 
@@ -1653,25 +1651,20 @@ ssize_t sockinfo_tcp::rx(const rx_call_t call_type, iovec* p_iov, ssize_t sz_iov
         	if (unlikely(g_b_exit)) {
 			ret = -1;
 			errno = EINTR;
-			si_tcp_logdbg("returning with: EINTR");
 			goto err;
 		}
         	if (unlikely(!is_rtr())) {
 			if (m_conn_state == TCP_CONN_INIT) {
-				si_tcp_logdbg("RX on never connected socket");
 				errno = ENOTCONN;
 				ret = -1;
 			} else if (m_conn_state == TCP_CONN_CONNECTING) {
-				si_tcp_logdbg("RX while async-connect on socket");
 				errno = EAGAIN;
 				ret = -1;
 			} else if (m_conn_state == TCP_CONN_RESETED) {
-				si_tcp_logdbg("RX on reseted socket");
 				m_conn_state = TCP_CONN_FAILED;
 				errno = ECONNRESET;
 				ret = -1;
 			} else {
-				si_tcp_logdbg("RX on disconnected socket - EOF");
 				ret = 0;
 			}
 			goto err;
@@ -1679,8 +1672,6 @@ ssize_t sockinfo_tcp::rx(const rx_call_t call_type, iovec* p_iov, ssize_t sz_iov
         	ret = rx_wait(poll_count, block_this_run);
         	if (unlikely(ret < 0)) goto err;
 	}
-	si_tcp_logfunc("something in rx queues: %d %p", m_n_rx_pkt_ready_list_count, m_rx_pkt_ready_list.front());
-
 	total_rx = dequeue_packet(p_iov, sz_iov, (sockaddr_in *)__from, __fromlen, in_flags, &out_flags);
 
 
@@ -1704,7 +1695,6 @@ ssize_t sockinfo_tcp::rx(const rx_call_t call_type, iovec* p_iov, ssize_t sz_iov
 	 // do it later - may want to ack less frequently ???:
 
 	unlock_tcp_con();
-	si_tcp_logfunc("rx completed, %d bytes sent", total_rx);
 
 #ifdef VMA_TIME_MEASURE
 	if (0 < total_rx)
@@ -1799,8 +1789,6 @@ bool sockinfo_tcp::rx_input_cb(mem_buf_desc_t* p_rx_pkt_mem_buf_desc_info, void*
 			// 2nd - check that we allow secondary backlog (don't check map of peer packets to avoid races)
 			if (MAX_SYN_RCVD == 0 && established_backlog_full) {
 				// TODO: consider check if we can now drain into Q of established
-				si_tcp_logdbg("SYN/CTL packet drop. established-backlog=%d (limit=%d) num_con_waiting=%d (limit=%d)",
-						(int)m_syn_received.size(), m_backlog, num_con_waiting, MAX_SYN_RCVD);
 #ifdef DEFINED_VMAPOLL
 				m_vma_poll_completion = NULL;
 				m_vma_poll_last_buff_lst = NULL;
@@ -2981,7 +2969,6 @@ bool sockinfo_tcp::is_readable(uint64_t *p_poll_sn, fd_array_t* p_fd_array)
 		//m_conn_cond.lock();
 		state = m_ready_conn_cnt == 0 ? false : true; 
 		if (state) {
-			si_tcp_logdbg("accept ready");
 			goto noblock_nolock;
 		}
 
@@ -2997,7 +2984,6 @@ bool sockinfo_tcp::is_readable(uint64_t *p_poll_sn, fd_array_t* p_fd_array)
 	if (!is_rtr()) {
 		// unconnected tcp sock is always ready for read!
 		// return its fd as ready
-		si_tcp_logdbg("block check on unconnected socket");
 		goto noblock_nolock;
 	}
 

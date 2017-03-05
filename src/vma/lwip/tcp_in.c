@@ -98,7 +98,6 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
     /* remove header from payload */
     if (pbuf_header(p, -((s16_t)(IPH_HL(in_data.iphdr) * 4))) || (p->tot_len < sizeof(struct tcp_hdr))) {
         /* drop short packets */
-        LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_input: short packet (%"U16_F" bytes) discarded\n", (u16_t)p->tot_len));
         TCP_STATS_INC(tcp.lenerr);
         TCP_STATS_INC(tcp.drop);
         pbuf_free(p);
@@ -110,7 +109,6 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
     hdrlen = TCPH_HDRLEN(in_data.tcphdr);
     if(pbuf_header(p, -(hdrlen * 4))){
         /* drop short packets */
-        LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_input: short packet\n"));
         TCP_STATS_INC(tcp.lenerr);
         TCP_STATS_INC(tcp.drop);
         pbuf_free(p);
@@ -154,7 +152,6 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
 				pbuf_split_64k(pcb->refused_data, &rest);
 
 				/* Notify again application with data previously received. */
-				LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_input: notify kept packet\n"));
 				TCP_EVENT_RECV(pcb, pcb->refused_data, ERR_OK, err);
 				if (err == ERR_OK) {
 					pcb->refused_data = rest;
@@ -164,7 +161,6 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
 					}
 					/* if err == ERR_ABRT, 'pcb' is already deallocated */
 					/* drop incoming packets, because pcb is "full" */
-					LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_input: drop incoming packets, because pcb is \"full\"\n"));
 					TCP_STATS_INC(tcp.drop);;
 					pbuf_free(p);
 					return;
@@ -224,7 +220,6 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
 								pbuf_cat(in_data.recv_data, rest); /* undo splitting */
 							}
 							pcb->refused_data = in_data.recv_data;
-							LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_input: keep incoming packet, because pcb is \"full\"\n"));
 							break;
 						} else {
 							in_data.recv_data = rest;
@@ -248,11 +243,6 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
 					tcp_input_pcb = NULL;
 					/* Try to send something out. */
 					tcp_output(pcb);
-			#if TCP_INPUT_DEBUG
-			#if TCP_DEBUG
-						tcp_debug_print_state(get_tcp_state(pcb));
-			#endif /* TCP_DEBUG */
-			#endif /* TCP_INPUT_DEBUG */
 					}
 				}
 				/* Jump target if pcb has been aborted in a callback (by calling tcp_abort()).
@@ -269,26 +259,22 @@ L3_level_tcp_input(struct pbuf *p, struct tcp_pcb* pcb)
 				}
 			}
     	 else if (PCB_IN_LISTEN_STATE(pcb)) {
-    		LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_input: packed for LISTENing connection.\n"));
 			// TODO: tcp_listen_input creates a pcb and puts in the active pcb list.
 			// how should we approach?
 			tcp_listen_input((struct tcp_pcb_listen*)pcb, &in_data);
 			pbuf_free(p);
     	}
     	else if (PCB_IN_TIME_WAIT_STATE(pcb)){
-    		LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_input: packed for TIME_WAITing connection.\n"));
     		tcp_timewait_input(pcb, &in_data);
 		pbuf_free(p);
     	}
     	else {
-    		LWIP_DEBUGF(TCP_RST_DEBUG, ("tcp_input: illegal get_tcp_state(pcb).\n"));
     		pbuf_free(p);
     	}
     } else {
 
     	/* If no matching PCB was found, send a TCP RST (reset) to the
            sender. */
-        LWIP_DEBUGF(TCP_RST_DEBUG, ("tcp_input: no PCB match found, resetting.\n"));
         if (!(TCPH_FLAGS(in_data.tcphdr) & TCP_RST)) {
             TCP_STATS_INC(tcp.proterr);
             TCP_STATS_INC(tcp.drop);

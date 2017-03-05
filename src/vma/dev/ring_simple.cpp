@@ -547,7 +547,6 @@ bool ring_simple::detach_flow(flow_tuple& flow_spec_5t, pkt_rcvr_sink* sink)
 		if (p_rfs_single_tcp == p_rfs) {
 			// clear the single 5tuple TCP connected socket for improved fast path
 			p_rfs_single_tcp = NULL;
-			ring_logdbg("update p_rfs_single_tcp=%p", p_rfs_single_tcp);
 		}
 #endif // DEFINED_VMAPOLL
 		p_rfs->detach_flow(sink);
@@ -992,11 +991,6 @@ bool ring_simple::rx_process_buffer(mem_buf_desc_t* p_rx_wc_buf_desc, transport_
 	// Validate buffer size
 	sz_data = p_rx_wc_buf_desc->sz_data;
 	if (unlikely(sz_data > p_rx_wc_buf_desc->sz_buffer)) {
-		if (sz_data == IP_FRAG_FREED) {
-			ring_logfuncall("Rx buffer dropped - old fragment part");
-		} else {
-			ring_logwarn("Rx buffer dropped - buffer too small (%d, %d)", sz_data, p_rx_wc_buf_desc->sz_buffer);
-		}
 		return false;
 	}
 
@@ -1017,7 +1011,6 @@ bool ring_simple::rx_process_buffer(mem_buf_desc_t* p_rx_wc_buf_desc, transport_
 
 		// Validate IPoIB header
 		if (unlikely(p_ipoib_h->ipoib_header != htonl(IPOIB_HEADER))) {
-			ring_logwarn("Rx buffer dropped - Invalid IPOIB Header Type (%#x : %#x)", p_ipoib_h->ipoib_header, htonl(IPOIB_HEADER));
 			return false;
 		}
 	}
@@ -1026,10 +1019,6 @@ bool ring_simple::rx_process_buffer(mem_buf_desc_t* p_rx_wc_buf_desc, transport_
 	{
 		// Get the data buffer start pointer to the Ethernet header pointer
 		struct ethhdr* p_eth_h = (struct ethhdr*)(p_rx_wc_buf_desc->p_buffer);
-		ring_logfunc("Rx buffer Ethernet dst=" ETH_HW_ADDR_PRINT_FMT " <- src=" ETH_HW_ADDR_PRINT_FMT " type=%#x",
-				ETH_HW_ADDR_PRINT_ADDR(p_eth_h->h_dest),
-				ETH_HW_ADDR_PRINT_ADDR(p_eth_h->h_source),
-				htons(p_eth_h->h_proto));
 
 		transport_header_len = ETH_HDR_LEN;
 		uint16_t* p_h_proto = &p_eth_h->h_proto;
@@ -1046,19 +1035,16 @@ bool ring_simple::rx_process_buffer(mem_buf_desc_t* p_rx_wc_buf_desc, transport_
 
 		//TODO: Remove this code when handling vlan in flow steering will be available. Change this code if vlan stripping is performed.
 		if((m_partition & VLAN_VID_MASK) != packet_vlan) {
-			ring_logfunc("Rx buffer dropped- Mismatched vlan. Packet vlan = %d, Local vlan = %d", packet_vlan, m_partition & VLAN_VID_MASK);
 			return false;
 		}
 
 		// Validate IP header as next protocol
 		if (unlikely(*p_h_proto != htons(ETH_P_IP))) {
-			ring_logwarn("Rx buffer dropped - Invalid Ethr Type (%#x : %#x)", p_eth_h->h_proto, htons(ETH_P_IP));
 			return false;
 		}
 	}
 	break;
 	default:
-		ring_logwarn("Rx buffer dropped - Unknown transport type %d", transport_type);
 		return false;
 	}
 
@@ -1067,7 +1053,6 @@ bool ring_simple::rx_process_buffer(mem_buf_desc_t* p_rx_wc_buf_desc, transport_
 
 	// Validate size for IPv4 header
 	if (unlikely(sz_data < sizeof(struct iphdr))) {
-		ring_logwarn("Rx buffer dropped - buffer too small for IPv4 header (%d, %d)", sz_data, sizeof(struct iphdr));
 		return false;
 	}
 
@@ -1076,16 +1061,12 @@ bool ring_simple::rx_process_buffer(mem_buf_desc_t* p_rx_wc_buf_desc, transport_
 
 	// Drop all non IPv4 packets
 	if (unlikely(p_ip_h->version != IPV4_VERSION)) {
-		ring_logwarn("Rx packet dropped - not IPV4 packet (got version: %#x)", p_ip_h->version);
 		return false;
 	}
 
 	// Check that received buffer size is not smaller then the ip datagram total size
 	ip_tot_len = ntohs(p_ip_h->tot_len);
 	if (unlikely(sz_data < ip_tot_len)) {
-		ring_logwarn("Rx packet dropped - buffer too small for received datagram (RxBuf:%d IP:%d)", sz_data, ip_tot_len);
-		ring_loginfo("Rx packet info (buf->%p, bufsize=%d), id=%d", p_rx_wc_buf_desc->p_buffer, p_rx_wc_buf_desc->sz_data, ntohs(p_ip_h->id));
-		vlog_print_buffer(VLOG_INFO, "rx packet data: ", "\n", (const char*)p_rx_wc_buf_desc->p_buffer, min(112, (int)p_rx_wc_buf_desc->sz_data));
 		return false;
 	} else if (sz_data > ip_tot_len) {
 		p_rx_wc_buf_desc->sz_data -= (sz_data - ip_tot_len);
@@ -1096,16 +1077,9 @@ bool ring_simple::rx_process_buffer(mem_buf_desc_t* p_rx_wc_buf_desc, transport_
 	ip_frag_off = ntohs(p_ip_h->frag_off);
 	n_frag_offset = (ip_frag_off & FRAGMENT_OFFSET) * 8;
 
-	ring_logfunc("Rx ip packet info: dst=%d.%d.%d.%d, src=%d.%d.%d.%d, packet_sz=%d, offset=%d, id=%d, proto=%s[%d] (local if: %d.%d.%d.%d)",
-			NIPQUAD(p_ip_h->daddr), NIPQUAD(p_ip_h->saddr),
-			sz_data, n_frag_offset, ntohs(p_ip_h->id),
-			iphdr_protocol_type_to_str(p_ip_h->protocol), p_ip_h->protocol,
-			NIPQUAD(p_rx_wc_buf_desc->rx.dst.sin_addr.s_addr));
-
 	// Check that the ip datagram has at least the udp header size for the first ip fragment (besides the ip header)
 	ip_hdr_len = (int)(p_ip_h->ihl)*4;
 	if (unlikely((n_frag_offset == 0) && (ip_tot_len < (ip_hdr_len + sizeof(struct udphdr))))) {
-		ring_logwarn("Rx packet dropped - ip packet too small (%d bytes)- udp header cut!", ip_tot_len);
 		return false;
 	}
 
@@ -1183,8 +1157,6 @@ bool ring_simple::rx_process_buffer(mem_buf_desc_t* p_rx_wc_buf_desc, transport_
 		}
 
 		size_t sz_payload = ntohs(p_udp_h->len) - sizeof(struct udphdr);
-		ring_logfunc("Rx udp datagram info: src_port=%d, dst_port=%d, payload_sz=%d, csum=%#x",
-				ntohs(p_udp_h->source), ntohs(p_udp_h->dest), sz_payload, p_udp_h->check);
 
 		// Update the L3 info
 		p_rx_wc_buf_desc->rx.udp.local_if        = m_local_if;
@@ -1214,12 +1186,6 @@ bool ring_simple::rx_process_buffer(mem_buf_desc_t* p_rx_wc_buf_desc, transport_
 		}
 
 		size_t sz_payload = ip_tot_len - ip_hdr_len - p_tcp_h->doff*4;
-		ring_logfunc("Rx TCP segment info: src_port=%d, dst_port=%d, flags='%s%s%s%s%s%s' seq=%u, ack=%u, win=%u, payload_sz=%u",
-				ntohs(p_tcp_h->source), ntohs(p_tcp_h->dest),
-				p_tcp_h->urg?"U":"", p_tcp_h->ack?"A":"", p_tcp_h->psh?"P":"",
-				p_tcp_h->rst?"R":"", p_tcp_h->syn?"S":"", p_tcp_h->fin?"F":"",
-				ntohl(p_tcp_h->seq), ntohl(p_tcp_h->ack_seq), ntohs(p_tcp_h->window),
-				sz_payload);
 
 		// Update packet descriptor with datagram base address and length
 		p_rx_wc_buf_desc->rx.frag.iov_base = (uint8_t*)p_tcp_h + sizeof(struct tcphdr);
@@ -1249,16 +1215,11 @@ bool ring_simple::rx_process_buffer(mem_buf_desc_t* p_rx_wc_buf_desc, transport_
 	{
 		struct igmp* p_igmp_h= (struct igmp*)((uint8_t*)p_ip_h + ip_hdr_len);
 		NOT_IN_USE(p_igmp_h); /* to supress warning in case VMA_OPTIMIZE_LOG */
-		ring_logdbg("Rx IGMP packet info: type=%s (%d), group=%d.%d.%d.%d, code=%d",
-				priv_igmp_type_tostr(p_igmp_h->igmp_type), p_igmp_h->igmp_type,
-				NIPQUAD(p_igmp_h->igmp_group.s_addr), p_igmp_h->igmp_code);
 		if (transport_type == VMA_TRANSPORT_IB  || m_b_sysvar_eth_mc_l2_only_rules) {
-			ring_logdbg("Transport type is IB (or eth_mc_l2_only_rules), passing igmp packet to igmp_manager to process");
 			if(g_p_igmp_mgr) {
 				(g_p_igmp_mgr->process_igmp_packet(p_ip_h, m_local_if));
 				return false; // we return false in order to free the buffer, although we handled the packet
 			}
-			ring_logdbg("IGMP packet drop. IGMP manager does not exist.");
 			return false;
 		}
 		ring_logerr("Transport type is ETH, dropping the packet");
@@ -1267,16 +1228,10 @@ bool ring_simple::rx_process_buffer(mem_buf_desc_t* p_rx_wc_buf_desc, transport_
 	break;
 
 	default:
-		ring_logwarn("Rx packet dropped - undefined protocol = %d", p_ip_h->protocol);
 		return false;
 	}
 
 	if (unlikely(p_rfs == NULL)) {
-		ring_logdbg("Rx packet dropped - rfs object not found: dst:%d.%d.%d.%d:%d, src%d.%d.%d.%d:%d, proto=%s[%d]",
-				NIPQUAD(p_rx_wc_buf_desc->rx.dst.sin_addr.s_addr), ntohs(p_rx_wc_buf_desc->rx.dst.sin_port),
-				NIPQUAD(p_rx_wc_buf_desc->rx.src.sin_addr.s_addr), ntohs(p_rx_wc_buf_desc->rx.src.sin_port),
-				iphdr_protocol_type_to_str(p_ip_h->protocol), p_ip_h->protocol);
-
 		return false;
 	}
 	return p_rfs->rx_dispatch_packet(p_rx_wc_buf_desc, pv_fd_ready_array);
@@ -1460,7 +1415,6 @@ void ring_simple::mem_buf_desc_return_to_owner_rx(mem_buf_desc_t* p_mem_buf_desc
 
 void ring_simple::mem_buf_desc_return_to_owner_tx(mem_buf_desc_t* p_mem_buf_desc)
 {
-	ring_logfuncall("");
 	RING_LOCK_AND_RUN(m_lock_ring_tx, m_tx_num_wr_free += put_tx_buffers(p_mem_buf_desc));
 }
 
@@ -1590,8 +1544,6 @@ mem_buf_desc_t* ring_simple::mem_buf_tx_get(ring_user_id_t id, bool b_block, int
 
 int ring_simple::mem_buf_tx_release(mem_buf_desc_t* p_mem_buf_desc_list, bool b_accounting, bool trylock/*=false*/)
 {
-	ring_logfuncall("");
-
 	if (!trylock)
 		m_lock_ring_tx.lock();
 	else if (m_lock_ring_tx.trylock())

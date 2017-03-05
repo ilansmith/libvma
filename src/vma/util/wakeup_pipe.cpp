@@ -78,20 +78,15 @@ wakeup_pipe::wakeup_pipe()
 
 void wakeup_pipe::do_wakeup()
 {
-	wkup_logfuncall("");
-
 	//m_wakeup_lock.lock();
 	//This func should be called under socket / epoll lock
 
 	//Call to wakeup only in case there is some thread that is sleeping on epoll
 	if (!m_is_sleeping)
 	{
-		wkup_logfunc("There is no thread in epoll_wait, therefore not calling for wakeup");
 		//m_wakeup_lock.unlock();
 		return;
 	}
-
-	wkup_entry_dbg("");
 
 	int errno_tmp = errno; //don't let wakeup affect errno, as this can fail with EEXIST
 	BULLSEYE_EXCLUDE_BLOCK_START
@@ -108,14 +103,11 @@ void wakeup_pipe::do_wakeup()
 void wakeup_pipe::remove_wakeup_fd()
 {
 	if (m_is_sleeping) return;
-	wkup_entry_dbg("");
 	int tmp_errno = errno;
 	if (orig_os_api.epoll_ctl(m_epfd, EPOLL_CTL_DEL, g_wakeup_pipes[0], NULL))
 	{
 		BULLSEYE_EXCLUDE_BLOCK_START
-		if (errno == ENOENT) {
-			wkup_logdbg("Failed to delete global pipe from internal epfd it was already deleted");
-		} else {
+		if (errno != ENOENT) {
 			wkup_logerr("failed to delete global pipe from internal epfd (errno=%d %m)", errno);
 		}
 		BULLSEYE_EXCLUDE_BLOCK_END
