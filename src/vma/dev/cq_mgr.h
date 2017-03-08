@@ -110,9 +110,11 @@ class cq_mgr
 	friend class ring_bond; // need to expose the m_n_global_sn only to ring
 
 public:
-
-	cq_mgr(ring_simple* p_ring, ib_ctx_handler* p_ib_ctx_handler, int cq_size, struct ibv_comp_channel* p_comp_event_channel, bool is_rx);
+	cq_mgr(ring_simple *p_ring, ib_ctx_handler *p_ib_ctx_handler, int cq_size,
+			struct ibv_comp_channel *p_comp_event_channel, bool is_rx, bool config=true);
 	virtual ~cq_mgr();
+
+	void configure(int cq_size);
 
 	ibv_cq *get_ibv_cq_hndl();
 	int	get_channel_fd();
@@ -223,6 +225,7 @@ protected:
 	inline uint32_t process_recv_queue(void* pv_fd_ready_array = NULL);
 
 	struct ibv_cq*		m_p_ibv_cq;
+	ib_ctx_handler*		m_p_ib_ctx_handler;
 	bool			m_b_is_rx;
 	descq_t			m_rx_queue;
 	static uint64_t		m_n_global_sn;
@@ -242,7 +245,10 @@ protected:
 	const uint32_t		m_n_sysvar_rx_prefetch_bytes_before_poll;
 	const uint32_t		m_n_sysvar_rx_prefetch_bytes;
 	size_t			m_sz_transport_header;
-
+	const uint32_t		m_n_sysvar_rx_num_wr_to_post_recv;
+	bool			m_skip_dtor;
+	virtual void		prep_ibv_cq(vma_ibv_cq_init_attr &attr);
+	virtual int		post_ibv_cq() { return 0;}
 
 private:
 #ifdef DEFINED_VMAPOLL
@@ -254,11 +260,9 @@ private:
 	volatile struct		mlx5_cqe64 	(*m_mlx5_cqes)[];
 	volatile uint32_t 	*m_cq_db;
 #endif // DEFINED_VMAPOLL
-	ib_ctx_handler* 	m_p_ib_ctx_handler;
 	const bool		m_b_sysvar_is_rx_sw_csum_on;
 	struct ibv_comp_channel*	m_comp_event_channel;
 	bool			m_b_notification_armed;
-	const uint32_t		m_n_sysvar_rx_num_wr_to_post_recv;
 	const uint32_t		m_n_sysvar_qp_compensation_level;
 	const bool		m_b_sysvar_cq_keep_qp_full;
 	descq_t			m_rx_pool;
