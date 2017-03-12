@@ -3007,6 +3007,8 @@ bool sockinfo_tcp::is_readable(uint64_t *p_poll_sn, fd_array_t* p_fd_array)
 	if (!p_poll_sn)
 		return false;
 
+	consider_rings_migration();
+
 	m_rx_ring_map_lock.lock();
 	while(!g_b_exit && is_rtr()) {
 	   if (likely(m_p_rx_ring)) {
@@ -3787,6 +3789,8 @@ int sockinfo_tcp::rx_wait_helper(int &poll_count, bool is_blocking)
 	poll_count++;
 	n  = 0;
 	// if in listen state go directly to wait part
+
+	consider_rings_migration();
 
 	// There's only one CQ
 	m_rx_ring_map_lock.lock();
