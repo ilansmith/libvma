@@ -1068,24 +1068,16 @@ inline void ring_simple::vma_poll_process_recv_buffer(mem_buf_desc_t* p_rx_wc_bu
 // Return values: false = Reuse this data buffer & mem_buf_desc
 bool ring_simple::rx_process_buffer(mem_buf_desc_t* p_rx_wc_buf_desc, transport_type_t transport_type, void* pv_fd_ready_array /*=NULL*/)
 {
-	size_t sz_data = 0;
+	size_t sz_data;
 	size_t transport_header_len = ETH_HDR_LEN;
-	uint16_t ip_hdr_len = 0;
-	uint16_t ip_tot_len = 0;
-	uint16_t ip_frag_off = 0;
-	uint16_t n_frag_offset = 0;
-	struct iphdr* p_ip_h = NULL;
-	struct udphdr* p_udp_h = NULL;
-
-#ifdef DEFINED_VMAPOLL
-	NOT_IN_USE(ip_tot_len);
-	NOT_IN_USE(ip_frag_off);
-	NOT_IN_USE(n_frag_offset);
-	NOT_IN_USE(p_udp_h);
-	NOT_IN_USE(transport_type);
-#endif // DEFINED_VMAPOLL
+	uint16_t ip_hdr_len;
+	uint16_t ip_tot_len;
+	uint16_t ip_frag_off;
+	uint16_t n_frag_offset;
+	struct iphdr* p_ip_h;
 
 	// This is an internal function (within ring and 'friends'). No need for lock mechanism.
+	NOT_IN_USE(transport_type);
 
 	if (likely(m_flow_tag_enabled && p_rx_wc_buf_desc->rx.flow_tag_id &&
 		   (p_rx_wc_buf_desc->rx.flow_tag_id != FLOW_TAG_MASK))) {
@@ -1127,7 +1119,7 @@ bool ring_simple::rx_process_buffer(mem_buf_desc_t* p_rx_wc_buf_desc, transport_
 
 			} else if (p_ip_h->protocol==IPPROTO_UDP) {
 				// Get the udp header pointer + udp payload size
-				p_udp_h = (struct udphdr*)((uint8_t*)p_ip_h + ip_hdr_len);
+				struct udphdr *p_udp_h = (struct udphdr*)((uint8_t*)p_ip_h + ip_hdr_len);
 				size_t sz_payload = ntohs(p_udp_h->len) - sizeof(struct udphdr);
 				// Update packet descriptor with datagram base address and length
 				p_rx_wc_buf_desc->rx.frag.iov_base = (uint8_t*)p_udp_h + sizeof(struct udphdr);
@@ -1169,22 +1161,8 @@ bool ring_simple::rx_process_buffer(mem_buf_desc_t* p_rx_wc_buf_desc, transport_
 	++m_ring_stat_static.n_rx_pkt_count;
 
 	// Validate transport type headers
-	switch (transport_type) {
-	case VMA_TRANSPORT_IB:
-	{
-		// Get the data buffer start pointer to the ipoib header pointer
-		struct ipoibhdr* p_ipoib_h = (struct ipoibhdr*)(p_rx_wc_buf_desc->p_buffer + GRH_HDR_LEN);
 
-		transport_header_len = GRH_HDR_LEN + IPOIB_HDR_LEN;
-
-		// Validate IPoIB header
-		if (unlikely(p_ipoib_h->ipoib_header != htonl(IPOIB_HEADER))) {
-			ring_logwarn("Rx buffer dropped - Invalid IPOIB Header Type (%#x : %#x)", p_ipoib_h->ipoib_header, htonl(IPOIB_HEADER));
-			return false;
-		}
-	}
-	break;
-	case VMA_TRANSPORT_ETH:
+	/* XXX assume VMA_TRANSPORT_ETH */
 	{
 		// Get the data buffer start pointer to the Ethernet header pointer
 		struct ethhdr* p_eth_h = (struct ethhdr*)(p_rx_wc_buf_desc->p_buffer);
@@ -1217,17 +1195,12 @@ bool ring_simple::rx_process_buffer(mem_buf_desc_t* p_rx_wc_buf_desc, transport_
 			return false;
 		}
 	}
-	break;
-	default:
-		ring_logwarn("Rx buffer dropped - Unknown transport type %d", transport_type);
-		return false;
-	}
 
 	// Jump to IP header - Skip IB (GRH and IPoIB) or Ethernet (MAC) header sizes
 	sz_data -= transport_header_len;
 
 	// Validate size for IPv4 header
-	if (unlikely(sz_data < sizeof(struct iphdr))) {
+	if (unlikely(sz_data < sizeof(struct iphdr))) { /* XXX */
 		ring_logwarn("Rx buffer dropped - buffer too small for IPv4 header (%d, %d)", sz_data, sizeof(struct iphdr));
 		return false;
 	}
@@ -1236,7 +1209,7 @@ bool ring_simple::rx_process_buffer(mem_buf_desc_t* p_rx_wc_buf_desc, transport_
 	p_ip_h = (struct iphdr*)(p_rx_wc_buf_desc->p_buffer + transport_header_len);
 
 	// Drop all non IPv4 packets
-	if (unlikely(p_ip_h->version != IPV4_VERSION)) {
+	if (unlikely(p_ip_h->version != IPV4_VERSION)) { /* XXX */
 		ring_logwarn("Rx packet dropped - not IPV4 packet (got version: %#x)", p_ip_h->version);
 		return false;
 	}
@@ -1272,42 +1245,6 @@ bool ring_simple::rx_process_buffer(mem_buf_desc_t* p_rx_wc_buf_desc, transport_
 
 	// Handle fragmentation
 	p_rx_wc_buf_desc->rx.n_frags = 1;
-	if (unlikely((ip_frag_off & MORE_FRAGMENTS_FLAG) || n_frag_offset)) { // Currently we don't expect to receive fragments
-		//for disabled fragments handling:
-		/*ring_logwarn("Rx packet dropped - VMA doesn't support fragmentation in receive flow!");
-		ring_logwarn("packet info: dst=%d.%d.%d.%d, src=%d.%d.%d.%d, packet_sz=%d, frag_offset=%d, id=%d, proto=%s[%d], transport type=%s, (local if: %d.%d.%d.%d)",
-				NIPQUAD(p_ip_h->daddr), NIPQUAD(p_ip_h->saddr),
-				sz_data, n_frag_offset, ntohs(p_ip_h->id),
-				iphdr_protocol_type_to_str(p_ip_h->protocol), p_ip_h->protocol, (transport_type ? "ETH" : "IB"),
-				NIPQUAD(local_addr));
-		return false;*/
-#if 1 //handle fragments
-		// Update fragments descriptor with datagram base address and length
-		p_rx_wc_buf_desc->rx.frag.iov_base = (uint8_t*)p_ip_h + ip_hdr_len;
-		p_rx_wc_buf_desc->rx.frag.iov_len  = ip_tot_len - ip_hdr_len;
-
-		// Add ip fragment packet to out fragment manager
-		mem_buf_desc_t* new_buf = NULL;
-		int ret = -1;
-		if (g_p_ip_frag_manager)
-			ret = g_p_ip_frag_manager->add_frag(p_ip_h, p_rx_wc_buf_desc, &new_buf);
-		if (ret < 0)  // Finished with error
-			return false;
-		if (!new_buf)  // This is fragment
-			return true;
-
-		// Re-calc all ip related values for new ip packet of head fragmentation list
-		p_rx_wc_buf_desc = new_buf;
-		p_ip_h = (struct iphdr*)(p_rx_wc_buf_desc->p_buffer + transport_header_len);
-		ip_hdr_len = (int)(p_ip_h->ihl)*4;
-		ip_tot_len = ntohs(p_ip_h->tot_len);
-
-		mem_buf_desc_t *tmp;
-		for (tmp = p_rx_wc_buf_desc; tmp; tmp = tmp->p_next_desc) {
-			++p_rx_wc_buf_desc->rx.n_frags;
-		}
-#endif
-	}
 
 	if (p_rx_wc_buf_desc->rx.is_sw_csum_need && compute_ip_checksum((unsigned short*)p_ip_h, p_ip_h->ihl * 2)) {
 		return false; // false ip checksum
@@ -1329,11 +1266,10 @@ bool ring_simple::rx_process_buffer(mem_buf_desc_t* p_rx_wc_buf_desc, transport_
 	p_rx_wc_buf_desc->rx.dst.sin_family      = AF_INET;
 	p_rx_wc_buf_desc->rx.dst.sin_addr.s_addr = p_ip_h->daddr;
 
-	switch (p_ip_h->protocol) {
-	case IPPROTO_UDP:
+	/* XXX assume UDP only */
 	{
 		// Get the udp header pointer + udp payload size
-		p_udp_h = (struct udphdr*)((uint8_t*)p_ip_h + ip_hdr_len);
+		struct udphdr *p_udp_h = (struct udphdr*)((uint8_t*)p_ip_h + ip_hdr_len);
 
 		// Update packet descriptor with datagram base address and length
 		p_rx_wc_buf_desc->rx.frag.iov_base = (uint8_t*)p_udp_h + sizeof(struct udphdr);
@@ -1362,74 +1298,6 @@ bool ring_simple::rx_process_buffer(mem_buf_desc_t* p_rx_wc_buf_desc, transport_
 			p_rfs = m_flow_udp_mc_map.get(flow_spec_udp_mc_key_t(p_rx_wc_buf_desc->rx.dst.sin_addr.s_addr,
 				p_rx_wc_buf_desc->rx.dst.sin_port), NULL);
 		}
-	}
-	break;
-
-	case IPPROTO_TCP:
-	{
-		// Get the tcp header pointer + tcp payload size
-		struct tcphdr* p_tcp_h = (struct tcphdr*)((uint8_t*)p_ip_h + ip_hdr_len);
-
-		if (p_rx_wc_buf_desc->rx.is_sw_csum_need && compute_tcp_checksum(p_ip_h, (unsigned short*) p_tcp_h)) {
-			return false; // false tcp checksum
-		}
-
-		size_t sz_payload = ip_tot_len - ip_hdr_len - p_tcp_h->doff*4;
-		ring_logfunc("Rx TCP segment info: src_port=%d, dst_port=%d, flags='%s%s%s%s%s%s' seq=%u, ack=%u, win=%u, payload_sz=%u",
-				ntohs(p_tcp_h->source), ntohs(p_tcp_h->dest),
-				p_tcp_h->urg?"U":"", p_tcp_h->ack?"A":"", p_tcp_h->psh?"P":"",
-				p_tcp_h->rst?"R":"", p_tcp_h->syn?"S":"", p_tcp_h->fin?"F":"",
-				ntohl(p_tcp_h->seq), ntohl(p_tcp_h->ack_seq), ntohs(p_tcp_h->window),
-				sz_payload);
-
-		// Update packet descriptor with datagram base address and length
-		p_rx_wc_buf_desc->rx.frag.iov_base = (uint8_t*)p_tcp_h + sizeof(struct tcphdr);
-		p_rx_wc_buf_desc->rx.frag.iov_len  = ip_tot_len - ip_hdr_len - sizeof(struct tcphdr);
-
-		// Update the L4 info
-		p_rx_wc_buf_desc->rx.src.sin_port        = p_tcp_h->source;
-		p_rx_wc_buf_desc->rx.dst.sin_port        = p_tcp_h->dest;
-		p_rx_wc_buf_desc->rx.sz_payload          = sz_payload;
-
-		p_rx_wc_buf_desc->rx.tcp.p_ip_h = p_ip_h;
-		p_rx_wc_buf_desc->rx.tcp.p_tcp_h = p_tcp_h;
-
-		// Find the relevant hash map and pass the packet to the rfs for dispatching
-		p_rfs = m_flow_tcp_map.get(flow_spec_tcp_key_t(p_rx_wc_buf_desc->rx.src.sin_addr.s_addr,
-			p_rx_wc_buf_desc->rx.dst.sin_port, p_rx_wc_buf_desc->rx.src.sin_port), NULL);
-
-		p_rx_wc_buf_desc->rx.tcp.n_transport_header_len = transport_header_len;
-
-		if (unlikely(p_rfs == NULL)) {	// If we didn't find a match for TCP 5T, look for a match with TCP 3T
-			p_rfs = m_flow_tcp_map.get(flow_spec_tcp_key_t(0, p_rx_wc_buf_desc->rx.dst.sin_port, 0), NULL);
-		}
-	}
-	break;
-
-	case IPPROTO_IGMP:
-	{
-		struct igmp* p_igmp_h= (struct igmp*)((uint8_t*)p_ip_h + ip_hdr_len);
-		NOT_IN_USE(p_igmp_h); /* to supress warning in case VMA_OPTIMIZE_LOG */
-		ring_logdbg("Rx IGMP packet info: type=%s (%d), group=%d.%d.%d.%d, code=%d",
-				priv_igmp_type_tostr(p_igmp_h->igmp_type), p_igmp_h->igmp_type,
-				NIPQUAD(p_igmp_h->igmp_group.s_addr), p_igmp_h->igmp_code);
-		if (transport_type == VMA_TRANSPORT_IB  || m_b_sysvar_eth_mc_l2_only_rules) {
-			ring_logdbg("Transport type is IB (or eth_mc_l2_only_rules), passing igmp packet to igmp_manager to process");
-			if(g_p_igmp_mgr) {
-				(g_p_igmp_mgr->process_igmp_packet(p_ip_h, m_local_if));
-				return false; // we return false in order to free the buffer, although we handled the packet
-			}
-			ring_logdbg("IGMP packet drop. IGMP manager does not exist.");
-			return false;
-		}
-		ring_logerr("Transport type is ETH, dropping the packet");
-		return false;
-	}
-	break;
-
-	default:
-		ring_logwarn("Rx packet dropped - undefined protocol = %d", p_ip_h->protocol);
-		return false;
 	}
 
 	if (unlikely(p_rfs == NULL)) {
