@@ -1539,7 +1539,6 @@ bool sockinfo_udp::is_readable(uint64_t *p_poll_sn, fd_array_t* p_fd_ready_array
 	// Loop on rx cq_list and process waiting wce (non blocking! polling only from this context)
 	// AlexR todo: would be nice to start after the last cq_pos for better cq coverage
 	if (p_poll_sn) {
-		consider_rings_migration();
 		si_udp_logfuncall("try poll rx cq's");
 		rx_ring_map_t::iterator rx_ring_iter;
 		m_rx_ring_map_lock.lock();
