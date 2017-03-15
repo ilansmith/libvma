@@ -679,46 +679,38 @@ bool cq_mgr::compensate_qp_poll_success(mem_buf_desc_t* buff_cur)
 void cq_mgr::reclaim_recv_buffer_helper(mem_buf_desc_t* buff)
 {
 	// Assume locked!!!
-	if (buff->dec_ref_count() <= 1 && (buff->lwip_pbuf.pbuf.ref-- <= 1)) {
-		//we need to verify that the buffer is returned to the right CQ (in case of HA ring's active CQ can change)
+	if (buff->dec_ref_count() > 1 || (buff->lwip_pbuf.pbuf.ref-- > 1)) {
+		return;
+	}
+
+	//
+	//we need to verify that the buffer is returned to the right CQ (in case of HA ring's active CQ can change)
 #ifdef DEFINED_VMAPOLL
-		if (likely(buff->p_desc_owner == m_p_ring)) {
+	if (likely(buff->p_desc_owner == m_p_ring)) {
 #else
-		if (likely(buff->rx.context == this)) {
+	if (likely(buff->rx.context == this)) {
 #endif // DEFINED_VMAPOLL
-			mem_buf_desc_t* temp = NULL;
-			while (buff) {
-			#if _VMA_LIST_DEBUG
-				if (buff->buffer_node.is_list_member()) {
-					vlog_printf(VLOG_WARNING, "cq_mgr::reclaim_recv_buffer_helper - buff is already a member in a list , id = %s\n", buff->buffer_node.list_id());
-				}
-			#endif
-				temp = buff;
-				buff = temp->p_next_desc;
-				temp->p_next_desc = NULL;
-				temp->p_prev_desc = NULL;
-				temp->reset_ref_count();
-				temp->rx.tcp.gro = 0;
-				temp->rx.is_vma_thr = false;
-#ifdef DEFINED_VMAPOLL				
-				temp->rx.vma_polled = false;
-#endif // DEFINED_VMAPOLL				
-				temp->rx.tcp.p_ip_h = NULL;
-				temp->rx.tcp.p_tcp_h = NULL;
-				temp->rx.udp.sw_timestamp.tv_nsec = 0;
-				temp->rx.udp.sw_timestamp.tv_sec = 0;
-				temp->rx.udp.hw_timestamp.tv_nsec = 0;
-				temp->rx.udp.hw_timestamp.tv_sec = 0;
-				temp->rx.hw_raw_timestamp = 0;
-				free_lwip_pbuf(&temp->lwip_pbuf);
-				m_rx_pool.push_back(temp);
+		while (buff) {
+			mem_buf_desc_t* temp;
+#if _VMA_LIST_DEBUG
+			if (buff->buffer_node.is_list_member()) {
+				vlog_printf(VLOG_WARNING, "cq_mgr::reclaim_recv_buffer_helper - buff is already a member in a list , id = %s\n", buff->buffer_node.list_id());
 			}
-			m_p_cq_stat->n_buffer_pool_len = m_rx_pool.size();
+#endif
+			temp = buff;
+			buff = temp->p_next_desc;
+			temp->p_next_desc = NULL;
+			temp->p_prev_desc = NULL;
+			temp->reset_ref_count();
+			memset(&temp->rx, 0, sizeof(temp->rx));
+			free_lwip_pbuf(&temp->lwip_pbuf);
+			m_rx_pool.push_back(temp);
 		}
-		else {
-			cq_logfunc("Buffer returned to wrong CQ");
-			g_buffer_pool_rx->put_buffers_thread_safe(buff);
-		}
+		m_p_cq_stat->n_buffer_pool_len = m_rx_pool.size();
+	}
+	else {
+		cq_logfunc("Buffer returned to wrong CQ");
+		g_buffer_pool_rx->put_buffers_thread_safe(buff);
 	}
 }
 
