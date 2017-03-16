@@ -33,11 +33,11 @@
 #ifndef SRC_VMA_DEV_QP_MGR_MP_H_
 #define SRC_VMA_DEV_QP_MGR_MP_H_
 
-#include "dev/qp_mgr.h"
+#include "dev/qp_mgr_eth_mlx5.h"
 #include "dev/ring_eth_mp.h"
 #include "dev/cq_mgr_mp.h"
 
-#ifndef DEFINED_IBV_OLD_VERBS_MLX_OFED
+#ifdef HAVE_MP_RQ
 
 class cq_mgr_mp;
 
@@ -77,6 +77,6 @@ private:
 	struct ibv_exp_rwq_ind_table*	m_p_rwq_ind_tbl;
 	struct ibv_qp*			m_p_tx_qp;
 };
-#endif
+#endif /* HAVE_MP_RQ */
 
 #endif /* SRC_VMA_DEV_QP_MGR_MP_H_ */

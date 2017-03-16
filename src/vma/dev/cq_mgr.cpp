@@ -120,9 +120,6 @@ void cq_mgr::configure(int cq_size)
 		cq_logpanic("ibv_create_cq failed (errno=%d %m)", errno);
 	}
 	BULLSEYE_EXCLUDE_BLOCK_END
-	if (post_ibv_cq()) {
-		cq_logpanic("post_ibv_cq failed (errno=%d %m)", errno);
-	}
 	// use local copy of stats by default (on rx cq get shared memory stats)
 	m_p_cq_stat = &m_cq_stat_static;
 	memset(m_p_cq_stat , 0, sizeof(*m_p_cq_stat));

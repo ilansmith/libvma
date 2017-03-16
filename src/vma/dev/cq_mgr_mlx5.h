@@ -44,9 +44,9 @@ public:
 
 	enum buff_status_e{BS_OK, BS_CQE_RESP_WR_IMM_NOT_SUPPORTED, BS_IBV_WC_WR_FLUSH_ERR, BS_CQE_INVALID, BS_GENERAL_ERR};
 
-	cq_mgr_mlx5(ring_simple* p_ring, ib_ctx_handler* p_ib_ctx_handler, uint32_t cq_size, struct ibv_comp_channel* p_comp_event_channel, bool is_rx);
+	cq_mgr_mlx5(ring_simple* p_ring, ib_ctx_handler* p_ib_ctx_handler, uint32_t cq_size, struct ibv_comp_channel* p_comp_event_channel, bool is_rx, bool config=true);
 	virtual ~cq_mgr_mlx5();
-
+	void set_cq();
 	virtual mem_buf_desc_t*     poll(enum buff_status_e& status);
 	volatile struct mlx5_cqe64* check_cqe(void);
 	inline void                 cqe64_to_mem_buff_desc(volatile struct mlx5_cqe64 *cqe, mem_buf_desc_t* p_rx_wc_buf_desc, enum buff_status_e& status);
@@ -57,7 +57,7 @@ public:
 	virtual void                del_qp_rx(qp_mgr *qp);
 	virtual uint32_t            clean_cq();
 
-private:
+protected:
 	uint32_t                    m_cq_size;
 	uint32_t                    m_cq_cons_index;
 	struct mlx5_cqe64           (*m_cqes)[];

@@ -53,13 +53,8 @@
 /* Get CQE opcode. */
 #define MLX5_CQE_OPCODE(op_own) (((op_own) & 0xf0) >> 4)
 
-/* Get struct mlx5_cq* from struct ibv_cq* */
-#define _to_mxxx(xxx, type)\
-	((struct mlx5_##type *)\
-	((uintptr_t)((void *) m_p_ibv_##xxx) - (uintptr_t)offsetof(struct mlx5_##type, ibv_##xxx)))
-
-cq_mgr_mlx5::cq_mgr_mlx5(ring_simple* p_ring, ib_ctx_handler* p_ib_ctx_handler, uint32_t cq_size, struct ibv_comp_channel* p_comp_event_channel, bool is_rx):
-	cq_mgr(p_ring, p_ib_ctx_handler, cq_size, p_comp_event_channel, is_rx)
+cq_mgr_mlx5::cq_mgr_mlx5(ring_simple* p_ring, ib_ctx_handler* p_ib_ctx_handler, uint32_t cq_size, struct ibv_comp_channel* p_comp_event_channel, bool is_rx, bool config):
+	cq_mgr(p_ring, p_ib_ctx_handler, cq_size, p_comp_event_channel, is_rx, config)
 	,m_cq_size(cq_size)
 	,m_cq_cons_index(0)
 	,m_cqes(NULL)
@@ -69,8 +64,11 @@ cq_mgr_mlx5::cq_mgr_mlx5(ring_simple* p_ring, ib_ctx_handler* p_ib_ctx_handler, 
 	,m_p_rq_wqe_idx_to_wrid(NULL)
 {
 	cq_logfunc("");
+}
 
-	struct mlx5_cq* mlx5_cq = _to_mxxx(cq, cq);
+void cq_mgr_mlx5::set_cq()
+{
+	struct mlx5_cq* mlx5_cq = to_mcq(m_p_ibv_cq);
 	m_cq_dbell = mlx5_cq->dbrec;
 	m_cqes = (struct mlx5_cqe64 (*)[])(uintptr_t)mlx5_cq->active_buf->buf;
 }
@@ -428,6 +426,7 @@ int cq_mgr_mlx5::poll_and_process_element_rx(uint64_t* p_cq_poll_sn, void* pv_fd
 
 void	cq_mgr_mlx5::add_qp_rx(qp_mgr* qp)
 {
+	set_cq();
 	cq_mgr::add_qp_rx(qp);
 	struct verbs_qp *vqp = (struct verbs_qp *)qp->m_qp;
 	struct mlx5_qp * mlx5_hw_qp = (struct mlx5_qp*)container_of(vqp, struct mlx5_qp, verbs_qp);
