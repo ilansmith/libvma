@@ -797,8 +797,22 @@ fi
 
 AM_CONDITIONAL([HAVE_LIBNL], [test "$have_libnl" = "yes"])
 
-AC_CHECK_LIB([rdmacm], [rdma_lib_reset],
-		[AC_DEFINE([DEFINED_RDMA_LIB_RESET], [1], [rdma_lib_reset enabled])], [])
+AC_MSG_CHECKING([if 'rdma_lib_reset' exists in rdmacm])
+AC_TRY_LINK(
+#include <rdma/rdma_cma.h>
+,
+[
+  int reset = rdma_lib_reset();
+  reset = reset;
+],
+[
+  AC_MSG_RESULT([yes])
+  AC_DEFINE(DEFINED_RDMA_LIB_RESET, 1, [Define to 1 if rdma_lib_reset exists in rdma/rdma_cma.h])
+],
+[
+  AC_MSG_RESULT([no])
+  AC_DEFINE(DEFINED_RDMA_LIB_RESET, 0, [Define to 0 if rdma_lib_reset does not exist in rdma/rdma_cma.h])
+])
 
 AC_CONFIG_FILES([
 		Makefile
