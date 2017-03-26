@@ -157,7 +157,7 @@ public:
 	 * @return >=0 number of wce processed
 	 *         < 0 error
 	 */
-	int	poll_and_process_element_rx(uint64_t* p_cq_poll_sn, void* pv_fd_ready_array = NULL);
+	virtual int	poll_and_process_element_rx(uint64_t* p_cq_poll_sn, void* pv_fd_ready_array = NULL);
 	int	poll_and_process_element_tx(uint64_t* p_cq_poll_sn);
 
 	/**
@@ -176,6 +176,7 @@ public:
 
 	virtual void	add_qp_rx(qp_mgr* qp);
 	virtual void	del_qp_rx(qp_mgr *qp);
+	virtual uint32_t	clean_cq();
 	
 	void 	add_qp_tx(qp_mgr* qp);
 
@@ -208,6 +209,7 @@ private:
 #endif // DEFINED_VMAPOLL
 	ring_simple*			m_p_ring;
 	ib_ctx_handler*			m_p_ib_ctx_handler;
+	bool				m_b_was_cleand;
 	bool				m_b_is_rx;
 	bool				m_b_is_rx_hw_csum_on;
 	const bool			m_b_sysvar_is_rx_sw_csum_on;
@@ -303,28 +305,30 @@ cq_mgr* get_cq_mgr_from_cq_event(struct ibv_comp_channel* p_cq_channel);
 class cq_mgr_mlx5: public cq_mgr
 {
 public:
+
+	enum buff_status_e{BS_OK, BS_CQE_RESP_WR_IMM_NOT_SUPPORTED, BS_IBV_WC_WR_FLUSH_ERR, BS_GENERAL_ERR};
+
 	cq_mgr_mlx5(ring_simple* p_ring, ib_ctx_handler* p_ib_ctx_handler, uint32_t cq_size, struct ibv_comp_channel* p_comp_event_channel, bool is_rx);
 	virtual ~cq_mgr_mlx5();
 
-	virtual inline mem_buf_desc_t*		poll(uint32_t&	opcode, uint32_t&	status);
-	inline volatile struct mlx5_cqe64*	check_cqe(void);
-	volatile struct mlx5_cqe64*			check_error_completion(uint8_t op_own);
-	inline void							cqe64_to_mem_buff_desc(volatile struct mlx5_cqe64 *cqe, mem_buf_desc_t* p_rx_wc_buf_desc, uint32_t& opcode, uint32_t& status);
-
-	virtual int							drain_and_proccess(uintptr_t* p_recycle_buffers_last_wr_id = NULL);
-	virtual int							poll_and_process_helper_rx(uint64_t* p_cq_poll_sn, void* pv_fd_ready_array = NULL);
-	virtual mem_buf_desc_t*				process_cq_element_rx(mem_buf_desc_t* p_mem_buf_desc, uint32_t& opcode, uint32_t& status);
-	virtual void						add_qp_rx(qp_mgr* qp);
-	virtual void						del_qp_rx(qp_mgr *qp);
+	virtual inline mem_buf_desc_t* poll(enum buff_status_e& status);
+	volatile struct mlx5_cqe64*    check_cqe(void);
+	inline void                    cqe64_to_mem_buff_desc(volatile struct mlx5_cqe64 *cqe, mem_buf_desc_t* p_rx_wc_buf_desc, enum buff_status_e& status);
+	virtual int                    drain_and_proccess(uintptr_t* p_recycle_buffers_last_wr_id = NULL);
+	virtual int                    poll_and_process_element_rx(uint64_t* p_cq_poll_sn, void* pv_fd_ready_array = NULL);
+	virtual mem_buf_desc_t*        process_cq_element_rx(mem_buf_desc_t* p_mem_buf_desc, enum buff_status_e status);
+	virtual void                   add_qp_rx(qp_mgr* qp);
+	virtual void                   del_qp_rx(qp_mgr *qp);
+	virtual uint32_t               clean_cq();
 
 private:
-	uint32_t					m_cq_size;
-	uint32_t					m_cq_cons_index;
-	volatile struct mlx5_cqe64	(*m_cqes)[];
-	volatile uint32_t			*m_cq_dbell;
-	mem_buf_desc_t				*m_rx_hot_buffer;
-	volatile struct mlx5_wq		*m_rq;
-	uint64_t					*m_p_rq_wqe_idx_to_wrid;
+	uint32_t                    m_cq_size;
+	uint32_t                    m_cq_cons_index;
+	volatile struct mlx5_cqe64  (*m_cqes)[];
+	volatile uint32_t           *m_cq_dbell;
+	mem_buf_desc_t              *m_rx_hot_buffer;
+	struct mlx5_wq              *m_rq;
+	uint64_t                    *m_p_rq_wqe_idx_to_wrid;
 };
 #endif
 

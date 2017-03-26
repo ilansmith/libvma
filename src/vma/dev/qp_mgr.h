@@ -50,9 +50,7 @@
 #include "vma/dev/ib_ctx_handler.h"
 #include "vma/dev/ah_cleaner.h"
 #include "vma/dev/cq_mgr.h"
-#ifdef HAVE_INFINIBAND_MLX5_HW_H
-#include <infiniband/mlx5_hw.h>
-#endif
+
 #if 0
 REVIEW: verify can remove: #include "vma/dev/ring.h"
 #endif
@@ -107,6 +105,7 @@ class qp_mgr
 #ifdef DEFINED_VMAPOLL
 friend class cq_mgr;
 #endif // DEFINED_VMAPOLL	
+
 friend class cq_mgr_mlx5;
 public:
 	qp_mgr(const ring_simple* p_ring, const ib_ctx_handler* p_context, const uint8_t port_num, const uint32_t tx_num_wr);
@@ -240,22 +239,6 @@ private:
 	const uint16_t 		m_vlan;
 };
 
-#if !defined(DEFINED_VMAPOLL) && defined(HAVE_INFINIBAND_MLX5_HW_H)
-class qp_mgr_eth_mlx5 : public qp_mgr_eth
-{
-public:
-	qp_mgr_eth_mlx5(const ring_simple* p_ring, const ib_ctx_handler* p_context, const uint8_t port_num,
-			struct ibv_comp_channel* p_rx_comp_event_channel, const uint32_t tx_num_wr, const uint16_t vlan) throw (vma_error):
-					qp_mgr_eth(p_ring, p_context, port_num, p_rx_comp_event_channel, tx_num_wr, vlan, false) {
-						if(configure(p_rx_comp_event_channel)) throw_vma_exception("failed creating qp_mgr_eth");}
-
-	virtual ~qp_mgr_eth_mlx5() {}
-
-private:
-	cq_mgr*	init_rx_cq_mgr(struct ibv_comp_channel* p_rx_comp_event_channel);
-};
-#endif
-
 class qp_mgr_ib : public qp_mgr
 {
 public:
@@ -264,7 +247,6 @@ public:
 	qp_mgr(p_ring, p_context, port_num, tx_num_wr), m_pkey(pkey), m_underly_qpn(0) {
 		update_pkey_index();
 		if(configure(p_rx_comp_event_channel)) throw_vma_exception("failed creating qp"); };
-
 
 	virtual void 		modify_qp_to_ready_state();
 	virtual uint16_t	get_partiton() const { return m_pkey; };

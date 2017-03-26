@@ -71,6 +71,7 @@ libvma_la_SOURCES := \
 	dev/buffer_pool.cpp \
 	dev/cq_mgr.cpp \
 	dev/qp_mgr.cpp \
+	dev/qp_mgr_eth_mlx5.cpp \
 	dev/gro_mgr.cpp \
 	dev/ring_allocation_logic.cpp \
 	dev/rfs.cpp \
@@ -162,6 +163,7 @@ libvma_la_SOURCES := \
 	dev/net_device_table_mgr.h \
 	dev/net_device_val.h \
 	dev/qp_mgr.h \
+	dev/qp_mgr_eth_mlx5.h \
 	dev/rfs.h \
 	dev/rfs_mc.h \
 	dev/rfs_uc.h \

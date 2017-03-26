@@ -49,7 +49,9 @@
 #include "vma/dev/rfs_uc.h"
 #include "vma/dev/rfs_uc_tcp_gro.h"
 #include "vma/dev/cq_mgr.h"
-
+#if !defined(DEFINED_VMAPOLL) && defined(HAVE_INFINIBAND_MLX5_HW_H)
+#include "qp_mgr_eth_mlx5.h"
+#endif
 
 #undef  MODULE_NAME
 #define MODULE_NAME 		"ring_simple"

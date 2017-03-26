@@ -134,37 +134,10 @@ qp_mgr::~qp_mgr()
 	qp_logdbg("delete done");
 }
 
-static inline uint32_t align32pow2(uint32_t x)
-{
-	x--;
-	x |= x >> 1;
-	x |= x >> 2;
-	x |= x >> 4;
-	x |= x >> 8;
-	x |= x >> 16;
-
-	return x + 1;
-}
-
 cq_mgr*	qp_mgr::init_rx_cq_mgr(struct ibv_comp_channel* p_rx_comp_event_channel)
 {
 	 return new cq_mgr(m_p_ring, m_p_ib_ctx_handler, m_rx_num_wr, p_rx_comp_event_channel, true);
 }
-
-#if !defined(DEFINED_VMAPOLL) && defined(HAVE_INFINIBAND_MLX5_HW_H)
-cq_mgr*	qp_mgr_eth_mlx5::init_rx_cq_mgr(struct ibv_comp_channel* p_rx_comp_event_channel)
-{
-	m_rx_num_wr = align32pow2(m_rx_num_wr);
-
-	m_rq_wqe_idx_to_wrid = new uint64_t[m_rx_num_wr];
-	if (!m_rq_wqe_idx_to_wrid) {
-		qp_logerr("Failed allocating m_rq_wqe_idx_to_wrid (errno=%d %m)", errno);
-		return NULL;
-	}
-
-	return new cq_mgr_mlx5(m_p_ring, m_p_ib_ctx_handler, m_rx_num_wr, p_rx_comp_event_channel, true);
-}
-#endif
 
 cq_mgr*	qp_mgr::init_tx_cq_mgr()
 {
@@ -524,7 +497,6 @@ int qp_mgr::post_recv(mem_buf_desc_t* p_mem_buf_desc)
 {
 	qp_logfuncall("");
 	// Called from cq_mgr context under cq_mgr::LOCK!
-
 	mem_buf_desc_t *next;
 	while (p_mem_buf_desc) {
 		next = p_mem_buf_desc->p_next_desc;
@@ -542,7 +514,7 @@ int qp_mgr::post_recv(mem_buf_desc_t* p_mem_buf_desc)
 		m_ibv_rx_sg_array[m_curr_rx_wr].lkey   = p_mem_buf_desc->lkey;
 
 		if (m_rq_wqe_idx_to_wrid) {
-			uint64_t index = m_rq_wqe_counter & (m_rx_num_wr - 1);
+			uint32_t index = m_rq_wqe_counter & (m_rx_num_wr - 1);
 			m_rq_wqe_idx_to_wrid[index] = (uintptr_t)p_mem_buf_desc;
 			++m_rq_wqe_counter;
 		}
