@@ -95,8 +95,7 @@ buffer_pool::buffer_pool(size_t buffer_count, size_t buf_size, ib_ctx_handler *p
 	} else {
 		size = buf_size;
 	}
-	void *data_block = m_allocator.alloc_and_reg_mr(size + MCE_ALIGNMENT,
-							p_ib_ctx_h);
+	void *data_block = m_allocator.alloc_and_reg_mr(size, p_ib_ctx_h);
 
 
 	if (!buffer_count) return;
