@@ -45,7 +45,7 @@ class qp_mgr_eth_mlx5 : public qp_mgr_eth
 public:
 	qp_mgr_eth_mlx5(const ring_simple* p_ring, const ib_ctx_handler* p_context, const uint8_t port_num,
 			struct ibv_comp_channel* p_rx_comp_event_channel, const uint32_t tx_num_wr, const uint16_t vlan) throw (vma_error);
-	virtual ~qp_mgr_eth_mlx5() {}
+	virtual ~qp_mgr_eth_mlx5();
 
 private:
 	cq_mgr*	init_rx_cq_mgr(struct ibv_comp_channel* p_rx_comp_event_channel);

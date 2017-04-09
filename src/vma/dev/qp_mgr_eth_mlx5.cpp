@@ -37,20 +37,11 @@
 
 #if !defined(DEFINED_VMAPOLL) && defined(HAVE_INFINIBAND_MLX5_HW_H)
 
+#include <sys/mman.h>
+#include "cq_mgr_mlx5.h"
+#include "vma/util/utils.h"
 #include "vlogger/vlogger.h"
-#define qp_logerr		__log_info_err
-
-static inline uint32_t align32pow2(uint32_t x)
-{
-	x--;
-	x |= x >> 1;
-	x |= x >> 2;
-	x |= x >> 4;
-	x |= x >> 8;
-	x |= x >> 16;
-
-	return x + 1;
-}
+#define qp_logerr __log_info_err
 
 qp_mgr_eth_mlx5::qp_mgr_eth_mlx5(const ring_simple* p_ring, const ib_ctx_handler* p_context, const uint8_t port_num,
 		struct ibv_comp_channel* p_rx_comp_event_channel, const uint32_t tx_num_wr, const uint16_t vlan) throw (vma_error):
@@ -58,12 +49,21 @@ qp_mgr_eth_mlx5::qp_mgr_eth_mlx5(const ring_simple* p_ring, const ib_ctx_handler
 	if(configure(p_rx_comp_event_channel)) throw_vma_exception("failed creating qp_mgr_eth");
 }
 
+qp_mgr_eth_mlx5::~qp_mgr_eth_mlx5()
+{
+
+	if (m_rq_wqe_idx_to_wrid) {
+		munmap(m_rq_wqe_idx_to_wrid, m_rx_num_wr * sizeof(*m_rq_wqe_idx_to_wrid));
+		m_rq_wqe_idx_to_wrid = NULL;
+	}
+}
+
 cq_mgr*	qp_mgr_eth_mlx5::init_rx_cq_mgr(struct ibv_comp_channel* p_rx_comp_event_channel)
 {
 	m_rx_num_wr = align32pow2(m_rx_num_wr);
 
-	m_rq_wqe_idx_to_wrid = new uint64_t[m_rx_num_wr];
-	if (!m_rq_wqe_idx_to_wrid) {
+	m_rq_wqe_idx_to_wrid = (uint64_t*)mmap(NULL, m_rx_num_wr * sizeof(*m_rq_wqe_idx_to_wrid), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+	if (m_rq_wqe_idx_to_wrid == MAP_FAILED) {
 		qp_logerr("Failed allocating m_rq_wqe_idx_to_wrid (errno=%d %m)", errno);
 		return NULL;
 	}

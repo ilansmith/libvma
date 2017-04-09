@@ -26,6 +26,7 @@ SUBDIRS = infra netlink
 
 EXTRA_DIST = \
 	util/hash_map.inl \
+	dev/cq_mgr_inl.inl \
 	util/libvma.conf \
 	util/30-libvma-limits.conf
 
@@ -70,6 +71,7 @@ libvma_la_SOURCES := \
 	dev/ah_cleaner.cpp \
 	dev/buffer_pool.cpp \
 	dev/cq_mgr.cpp \
+	dev/cq_mgr_mlx5.cpp \
 	dev/qp_mgr.cpp \
 	dev/qp_mgr_eth_mlx5.cpp \
 	dev/gro_mgr.cpp \
@@ -155,6 +157,7 @@ libvma_la_SOURCES := \
 	dev/ah_cleaner.h \
 	dev/buffer_pool.h \
 	dev/cq_mgr.h \
+	dev/cq_mgr_mlx5.h \
 	dev/gro_mgr.h \
 	dev/ib_ctx_handler_collection.h \
 	dev/ib_ctx_handler.h \

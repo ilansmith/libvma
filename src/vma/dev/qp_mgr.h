@@ -147,6 +147,10 @@ public:
 	void			release_rx_buffers();
 	void 			release_tx_buffers();
 	void			trigger_completion_for_all_sent_packets();
+	static inline bool	is_running_over_mlx5(const char* divace_name)
+	{
+		return strstr(divace_name, "mlx5");
+	}
 #ifdef DEFINED_VMAPOLL
 	void 			set_signal_in_next_send_wqe();	
 	void 			mlx5_send(vma_ibv_send_wr* p_send_wqe);

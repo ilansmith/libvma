@@ -42,13 +42,13 @@
 #undef  MODULE_NAME
 #define MODULE_NAME 		"qpm"
 
-#define qp_logpanic 		__log_info_panic
+#define qp_logpanic 	__log_info_panic
 #define qp_logerr		__log_info_err
 #define qp_logwarn		__log_info_warn
 #define qp_loginfo		__log_info_info
 #define qp_logdbg		__log_info_dbg
 #define qp_logfunc		__log_info_func
-#define qp_logfuncall		__log_info_funcall
+#define qp_logfuncall	__log_info_funcall
 
 
 //#define ALIGN_WR_UP(_num_wr_) 		(max(32, ((_num_wr_ + 0xf) & ~(0xf))))
@@ -125,11 +125,6 @@ qp_mgr::~qp_mgr()
 	munmap(m_sq_wqe_idx_to_wrid, m_tx_num_wr * sizeof(*m_sq_wqe_idx_to_wrid));
 #endif // DEFINED_VMAPOLL
 
-#ifndef DEFINED_VMAPOLL
-	delete[] m_rq_wqe_idx_to_wrid;
-#else
-	free(m_rq_wqe_idx_to_wrid);
-#endif
 	qp_logdbg("Rx buffer poll: %d free global buffers available", g_buffer_pool_rx->get_free_count());
 	qp_logdbg("delete done");
 }
@@ -531,9 +526,9 @@ int qp_mgr::post_recv(mem_buf_desc_t* p_mem_buf_desc)
 			IF_VERBS_FAILURE(ibv_post_recv(m_qp, &m_ibv_rx_wr_array[0], &bad_wr)) {
 				uint32_t n_pos_bad_rx_wr = ((uint8_t*)bad_wr - (uint8_t*)m_ibv_rx_wr_array) / sizeof(struct ibv_recv_wr);
 				qp_logerr("failed posting list (errno=%d %m)", errno);
-				/*qp_logdbg*/qp_logerr("bad_wr is %d in submitted list (bad_wr=%p, m_ibv_rx_wr_array=%p, size=%d)", n_pos_bad_rx_wr, bad_wr, m_ibv_rx_wr_array, sizeof(struct ibv_recv_wr));
-				/*qp_logdbg*/qp_logerr("bad_wr info: wr_id=%#x, next=%p, addr=%#x, length=%d, lkey=%#x", bad_wr[0].wr_id, bad_wr[0].next, bad_wr[0].sg_list[0].addr, bad_wr[0].sg_list[0].length, bad_wr[0].sg_list[0].lkey);
-				/*qp_logdbg*/qp_logerr("QP current state: %d", priv_ibv_query_qp_state(m_qp));
+				qp_logerr("bad_wr is %d in submitted list (bad_wr=%p, m_ibv_rx_wr_array=%p, size=%d)", n_pos_bad_rx_wr, bad_wr, m_ibv_rx_wr_array, sizeof(struct ibv_recv_wr));
+				qp_logerr("bad_wr info: wr_id=%#x, next=%p, addr=%#x, length=%d, lkey=%#x", bad_wr[0].wr_id, bad_wr[0].next, bad_wr[0].sg_list[0].addr, bad_wr[0].sg_list[0].length, bad_wr[0].sg_list[0].lkey);
+				qp_logerr("QP current state: %d", priv_ibv_query_qp_state(m_qp));
 
 				// Fix broken linked list of rx_wr
 				if (n_pos_bad_rx_wr != (m_n_sysvar_rx_num_wr_to_post_recv - 1)) {
