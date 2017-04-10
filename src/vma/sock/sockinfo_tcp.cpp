@@ -986,10 +986,6 @@ void sockinfo_tcp::err_lwip_cb(void *pcb_container, err_t err)
 		int delete_fd = 0;
 		sockinfo_tcp *parent = conn->m_parent;
 		bool locked_by_me = false;
-		if (conn->m_tcp_con_lock.is_locked_by_me()) {
-			locked_by_me = true;
-			conn->unlock_tcp_con();
-		}
 		if ((delete_fd = parent->handle_child_FIN(conn))) {
 			//close will clean sockinfo_tcp object and the opened OS socket
 			close(delete_fd);
