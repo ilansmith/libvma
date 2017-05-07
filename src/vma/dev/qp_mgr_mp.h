@@ -44,12 +44,13 @@ public:
 	qp_mgr_mp(const ring_eth_cb *p_ring, const ib_ctx_handler *p_context,
 		  const uint8_t port_num,
 		  struct ibv_comp_channel *p_rx_comp_event_channel,
-		  const uint32_t tx_num_wr, const uint16_t vlan)
+		  const uint32_t tx_num_wr, const uint16_t vlan, struct ibv_mr *mr)
 		  throw (vma_error) : qp_mgr_eth(p_ring,
 						 p_context, port_num,
 						 p_rx_comp_event_channel,
 						 tx_num_wr, vlan, false),
-		  m_p_wq(NULL), m_p_wq_family(NULL), m_p_rwq_ind_tbl(NULL) {
+		  m_p_wq(NULL), m_p_wq_family(NULL), m_p_rwq_ind_tbl(NULL),
+		  m_umr_mr(mr) {
 		m_p_mp_ring = p_ring;
 		m_n_sysvar_rx_num_wr_to_post_recv = m_p_mp_ring->get_wq_count();
 		if (configure(p_rx_comp_event_channel))
@@ -68,6 +69,7 @@ private:
 	struct ibv_exp_wq*		m_p_wq;
 	struct ibv_exp_wq_family*	m_p_wq_family;
 	struct ibv_exp_rwq_ind_table*	m_p_rwq_ind_tbl;
+	struct ibv_mr*			m_umr_mr;
 };
 #endif /* HAVE_MP_RQ */
 

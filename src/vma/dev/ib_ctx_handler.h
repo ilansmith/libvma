@@ -37,6 +37,7 @@
 #include <infiniband/verbs.h>
 #include "vma/event/event_handler_ibverbs.h"
 #include "vma/dev/time_converter.h"
+#include "utils/lock_wrapper.h"
 
 // client to event manager 'command' invoker (??)
 //
@@ -50,6 +51,8 @@ public:
 	 *      register to event manager with m_channel and this.
 	 * */
 	//void execute(struct ibv_async_event ibv_event) { handle_ibv_event(ibv_event); }
+	bool                    create_umr_qp();
+	bool                    post_umr_wr(struct ibv_exp_send_wr &wr);
 	void                    set_dev_configuration();
 	ibv_mr*                 mem_reg(void *addr, size_t length, uint64_t access);
 	void                    mem_dereg(ibv_mr *mr);
@@ -91,6 +94,9 @@ private:
 	uint32_t                m_conf_attr_tx_num_wre;
 
 	time_converter*         m_p_ctx_time_converter;
+	lock_spin               m_lock_umr;
+	struct ibv_cq*          m_umr_cq;
+	struct ibv_qp*          m_umr_qp;
 };
 
 #endif
