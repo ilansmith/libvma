@@ -35,14 +35,10 @@
 #define MODULE_NAME	"allocator"
 
 vma_allocator::vma_allocator() : m_shmid(-1), m_data_block(NULL) {
-	m_non_contig_access_mr = VMA_IBV_ACCESS_LOCAL_WRITE;
 #ifdef VMA_IBV_ACCESS_ALLOCATE_MR
 	m_is_contig_alloc = true;
-	m_contig_access_mr = VMA_IBV_ACCESS_LOCAL_WRITE |
-			     VMA_IBV_ACCESS_ALLOCATE_MR;
 #else
 	m_is_contig_alloc = false;
-	m_contig_access_mr = 0;
 #endif
 
 }
@@ -56,7 +52,7 @@ void* vma_allocator::alloc_and_reg_mr(size_t size, ib_ctx_handler *p_ib_ctx_h) {
 		}
 		else {
 			__log_info_dbg("Huge pages allocation passed successfully");
-			if (!register_memory(size, p_ib_ctx_h, m_non_contig_access_mr)) {
+			if (!register_memory(size, p_ib_ctx_h, VMA_IBV_ACCESS_LOCAL_WRITE)) {
 				__log_info_dbg("failed registering huge pages data memory block");
 				throw_vma_exception("failed registering huge pages data memory"
 						" block");
@@ -66,7 +62,7 @@ void* vma_allocator::alloc_and_reg_mr(size_t size, ib_ctx_handler *p_ib_ctx_h) {
 	// fallthrough
 	case ALLOC_TYPE_CONTIG:
 		if (m_is_contig_alloc) {
-			if (!register_memory(size, p_ib_ctx_h, m_contig_access_mr)) {
+			if (!register_memory(size, p_ib_ctx_h, VMA_IBV_ACCESS_LOCAL_WRITE | VMA_IBV_ACCESS_ALLOCATE_MR)) {
 				__log_info_dbg("Failed allocating contiguous pages");
 			}
 			else {
@@ -87,7 +83,7 @@ void* vma_allocator::alloc_and_reg_mr(size_t size, ib_ctx_handler *p_ib_ctx_h) {
 			throw_vma_exception("failed allocating data memory block");
 		}
 		BULLSEYE_EXCLUDE_BLOCK_END
-		if (!register_memory(size, p_ib_ctx_h, m_non_contig_access_mr)) {
+		if (!register_memory(size, p_ib_ctx_h, VMA_IBV_ACCESS_LOCAL_WRITE)) {
 			__log_info_dbg("failed registering data memory block");
 			throw_vma_exception("failed registering data memory block");
 		}

@@ -56,7 +56,7 @@ public:
 	void* alloc_and_reg_mr(size_t size, ib_ctx_handler *p_ib_ctx_h);
 	void* get_ptr() {return m_data_block;}
 	uint32_t find_lkey_by_ib_ctx(ib_ctx_handler *p_ib_ctx_h);
-	virtual ~vma_allocator();
+	~vma_allocator();
 private:
 	bool register_memory(size_t size, ib_ctx_handler *p_ib_ctx_h, uint64_t access);
 	bool hugetlb_alloc(size_t sz_bytes);
@@ -64,8 +64,6 @@ private:
 	int m_shmid;
 	void *m_data_block;
 	bool m_is_contig_alloc;
-	uint64_t m_contig_access_mr;
-	uint64_t m_non_contig_access_mr;
 	// List of memory regions
 	std::deque<ibv_mr*> m_mrs;
 };

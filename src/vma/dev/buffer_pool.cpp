@@ -123,6 +123,7 @@ buffer_pool::buffer_pool(size_t buffer_count, size_t buf_size, ib_ctx_handler *p
 	}
 
 	__log_info_func("done");
+	printf("sizeof(buffer_pool:%lu\n", sizeof(buffer_pool));
 }
 
 buffer_pool::~buffer_pool()
