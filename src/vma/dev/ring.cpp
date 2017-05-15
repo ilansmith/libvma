@@ -45,6 +45,7 @@ ring::ring(int count, uint32_t mtu) : m_n_num_resources(count), m_p_n_rx_channel
 	INIT_LIST_HEAD(&m_ec_list);
 	m_vma_poll_completion = NULL;
 #endif // DEFINED_VMAPOLL	
+	printf("XXX sizeof(%s):%lu\n", __FUNCTION__, sizeof(*this));
 }
 
 ring::~ring()

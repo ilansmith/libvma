@@ -68,6 +68,7 @@ igmp_handler::igmp_handler(const igmp_key &key, uint8_t	igmp_code) : m_mc_addr (
 {
 	memset(&m_sge, 0, sizeof(m_sge));
 	memset(&m_p_send_igmp_wqe, 0, sizeof(m_p_send_igmp_wqe));
+	printf("XXX sizeof(%s):%lu\n", __FUNCTION__, sizeof(*this));
 }
 
 igmp_handler::~igmp_handler()

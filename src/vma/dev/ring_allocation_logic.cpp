@@ -55,6 +55,7 @@ ring_allocation_logic::ring_allocation_logic(ring_logic_t _ring_allocation_logic
 	m_fd(fd), m_migration_try_count(ring_migration_ratio), m_migration_candidate(0)
 {
 	m_res_key = get_res_key_by_logic();
+	printf("XXX sizeof(%s):%lu\n", __FUNCTION__, sizeof(*this));
 }
 
 resource_allocation_key ring_allocation_logic::get_res_key_by_logic()

@@ -145,6 +145,7 @@ cq_mgr::cq_mgr(ring_simple* p_ring, ib_ctx_handler* p_ib_ctx_handler, int cq_siz
 	}
 
 	cq_logdbg("Created CQ as %s with fd[%d] and of size %d elements (ibv_cq_hndl=%p)", (m_b_is_rx?"Rx":"Tx"), get_channel_fd(), cq_size, m_p_ibv_cq);
+	printf("XXX sizeof(%s):%lu\n", __FUNCTION__, sizeof(*this));
 }
 
 uint32_t cq_mgr::clean_cq()

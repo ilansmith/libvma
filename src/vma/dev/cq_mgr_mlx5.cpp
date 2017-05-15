@@ -69,6 +69,7 @@ cq_mgr_mlx5::cq_mgr_mlx5(ring_simple* p_ring, ib_ctx_handler* p_ib_ctx_handler, 
 	struct mlx5_cq* mlx5_cq = _to_mxxx(cq, cq);
 	m_cq_dbell = mlx5_cq->dbrec;
 	m_cqes = (struct mlx5_cqe64 (*)[])(uintptr_t)mlx5_cq->active_buf->buf;
+	printf("XXX sizeof(%s):%lu\n", __FUNCTION__, sizeof(*this));
 }
 
 uint32_t cq_mgr_mlx5::clean_cq()

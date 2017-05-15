@@ -74,6 +74,7 @@ m_netmask(0), m_mtu(0), m_state(INVALID), m_p_L2_addr(NULL), m_p_br_addr(NULL),
 m_transport_type(transport_type),  m_lock("net_device_val lock"), m_bond(NO_BOND),
 m_bond_xmit_hash_policy(XHP_LAYER_2), m_bond_fail_over_mac(0)
 {
+	printf("XXX sizeof(%s):%lu\n", __FUNCTION__, sizeof(*this));
 }
 
 net_device_val::~net_device_val()

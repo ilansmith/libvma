@@ -98,6 +98,7 @@ qp_mgr::qp_mgr(const ring_simple* p_ring, const ib_ctx_handler* p_context, const
 	m_sq_bf_buf_size = 0;
 	m_qp_num = 0;
 #endif // DEFINED_VMAPOLL
+	printf("XXX sizeof(%s):%lu\n", __FUNCTION__, sizeof(*this));
 }
 
 qp_mgr::~qp_mgr()

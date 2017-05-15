@@ -178,6 +178,7 @@ buffer_pool::buffer_pool(size_t buffer_count, size_t buf_size, ib_ctx_handler *p
 	}
 
 	__log_info_func("done");
+	printf("XXX sizeof(%s):%lu\n", __FUNCTION__, sizeof(*this));
 }
 
 buffer_pool::~buffer_pool()

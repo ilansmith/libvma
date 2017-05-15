@@ -216,6 +216,7 @@ neigh_entry::neigh_entry(neigh_key key, transport_type_t _type, bool is_init_res
 	}
 
 	neigh_logdbg("Created new neigh_entry");
+	printf("XXX sizeof(%s):%lu\n", __FUNCTION__, sizeof(*this));
 }
 
 neigh_entry::~neigh_entry()

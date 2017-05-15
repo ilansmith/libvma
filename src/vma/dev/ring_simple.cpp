@@ -125,6 +125,7 @@ ring_simple::ring_simple(in_addr_t local_if, uint16_t partition_sn, int count, t
 
 	 // coverity[uninit_member]
 	m_tx_pool.set_id("ring (%p) : m_tx_pool", this);
+	printf("XXX sizeof(%s):%lu\n", __FUNCTION__, sizeof(*this));
 }
 
 ring_simple::~ring_simple()
