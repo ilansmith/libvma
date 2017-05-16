@@ -76,6 +76,11 @@ ring_alloc_logic_attr::ring_alloc_logic_attr():
 				m_ring_profile_key(0),
 				m_user_id_key(0){}
 
+ring_alloc_logic_attr::ring_alloc_logic_attr(ring_logic_t ring_logic):
+				m_ring_alloc_logic(ring_logic),
+				m_ring_profile_key(0),
+				m_user_id_key(0){}
+
 ring_alloc_logic_attr::ring_alloc_logic_attr(const ring_alloc_logic_attr &other):
 	m_ring_alloc_logic(other.m_ring_alloc_logic),
 	m_ring_profile_key(other.m_ring_profile_key),

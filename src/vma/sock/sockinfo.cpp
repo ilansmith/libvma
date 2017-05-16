@@ -81,13 +81,13 @@ sockinfo::sockinfo(int fd) throw (vma_exception):
 		m_n_rx_pkt_ready_list_count(0), m_rx_pkt_ready_offset(0), m_rx_ready_byte_count(0),
 		m_n_sysvar_rx_num_buffs_reuse(safe_mce_sys().rx_bufs_batch),
 		m_n_sysvar_rx_poll_num(safe_mce_sys().rx_poll_num),
-		m_ring_alloc_log_rx(),
-		m_ring_alloc_log_tx(),
+		m_ring_alloc_log_rx(safe_mce_sys().ring_allocation_logic_rx),
+		m_ring_alloc_log_tx(safe_mce_sys().ring_allocation_logic_tx),
 		m_rx_callback(NULL),
 		m_rx_callback_context(NULL)
-#ifdef DEFINED_VMAPOLL 		
+#ifdef DEFINED_VMAPOLL
 		, m_fd_context((void *)((uintptr_t)m_fd))
-#endif // DEFINED_VMAPOLL 		
+#endif // DEFINED_VMAPOLL
 		, m_flow_tag_id(0)
 		, m_flow_tag_enabled(false)
 		, m_tcp_flow_is_5t(false)

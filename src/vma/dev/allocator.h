@@ -50,7 +50,7 @@
 
 class ib_ctx_handler;
 
-typedef std::deque<ibv_mr*> mrs_queue;
+typedef std::deque<ibv_mr*> mr_deque;
 
 class vma_allocator {
 public:
@@ -69,7 +69,7 @@ private:
 	uint64_t m_contig_access_mr;
 	uint64_t m_non_contig_access_mr;
 	// List of memory regions
-	mrs_queue m_mrs;
+	mr_deque m_mrs;
 };
 
 #endif /* SRC_VMA_DEV_ALLOCATOR_H_ */
