@@ -60,7 +60,7 @@ public:
 	ibv_exp_res_domain* get_res_domain() const {return m_res_domain;};
 	uint32_t	get_wq_count() const {return m_wq_count;};
 	void*		get_mem_block() const {return m_alloc.get_ptr();};
-	uint8_t		et_single_wqe_log_num_of_strides() const {return m_single_wqe_log_num_of_strides;};
+	uint8_t		get_single_wqe_log_num_of_strides() const {return m_single_wqe_log_num_of_strides;};
 	uint32_t	get_strides_num() const {return m_strides_num;};
 	uint8_t		get_single_stride_log_num_of_bytes() const {return m_single_stride_log_num_of_bytes;};
 	uint32_t	get_stride_size() const {return m_stride_size;};

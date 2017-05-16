@@ -232,7 +232,7 @@ uint32_t vma_allocator::find_lkey_by_ib_ctx(ib_ctx_handler *p_ib_ctx_h) const
 {
 	uint32_t lkey = 0;
 	if (likely(p_ib_ctx_h)) {
-		mrs_queue::const_iterator iter;
+		mr_deque::const_iterator iter;
 		for (iter = m_mrs.begin(); iter != m_mrs.end(); ++iter) {
 			ibv_mr *mr = *iter;
 			if (mr->context->device == p_ib_ctx_h->get_ibv_device()) {
@@ -246,7 +246,7 @@ uint32_t vma_allocator::find_lkey_by_ib_ctx(ib_ctx_handler *p_ib_ctx_h) const
 
 vma_allocator::~vma_allocator() {
 	// Unregister memory
-	mrs_queue::iterator iter_mrs;
+	mr_deque::iterator iter_mrs;
 	for (iter_mrs = m_mrs.begin(); iter_mrs != m_mrs.end(); ++iter_mrs) {
 
 		ibv_mr *mr = *iter_mrs;

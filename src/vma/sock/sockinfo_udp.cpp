@@ -717,15 +717,18 @@ int sockinfo_udp::on_sockname_change(struct sockaddr *__name, socklen_t __namele
 
 int sockinfo_udp::set_ring_attr(vma_ring_alloc_logic_attr *attr)
 {
-	int res = 0;
 	if ((attr->comp_mask & VMA_RING_ALLOC_MASK_RING_ENGRESS) && attr->engress) {
-		res -= set_ring_attr_helper(&m_ring_alloc_log_tx, attr);
+		if (set_ring_attr_helper(&m_ring_alloc_log_tx, attr)) {
+			return -1;
+		}
 	}
 	if ((attr->comp_mask & VMA_RING_ALLOC_MASK_RING_INGRESS) && attr->ingress) {
-		res -= set_ring_attr_helper(&m_ring_alloc_log_rx, attr);
+		if (set_ring_attr_helper(&m_ring_alloc_log_rx, attr)) {
+			return -1;
+		}
 		m_ring_alloc_logic = ring_allocation_logic_rx(get_fd(), m_ring_alloc_log_rx, this);
 	}
-	return res;
+	return 0;
 }
 
 int sockinfo_udp::set_ring_attr_helper(ring_alloc_logic_attr *sock_attr,
@@ -735,7 +738,7 @@ int sockinfo_udp::set_ring_attr_helper(ring_alloc_logic_attr *sock_attr,
 		if (sock_attr->m_ring_profile_key) {
 			si_udp_logdbg("ring_profile_key is already set and "
 				      "cannot be changed");
-			return 1;
+			return -1;
 		}
 		sock_attr->m_ring_profile_key = user_attr->ring_profile_key;
 	}

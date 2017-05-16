@@ -190,6 +190,7 @@ int ring_eth_cb::cyclic_buffer_read(vma_completion_cb_t &completion,
 		return 0;
 	}
 	if (unlikely(ret == -1)) {
+		m_curr_batch_starting_stride = 0;
 		ring_logdbg("poll_mp_cq failed with errno %m", errno);
 		return -1;
 	}
@@ -223,10 +224,10 @@ int ring_eth_cb::cyclic_buffer_read(vma_completion_cb_t &completion,
 			} else if (ret == MP_LOOP_DRAINED) { // no packets left
 				return 0;
 			}
-			m_curr_batch_starting_stride = m_curr_wqe_used_strides - m_curr_batch_starting_stride;
 		}
 	}
 
+	m_curr_batch_starting_stride = m_curr_wqe_used_strides - m_curr_batch_starting_stride;
 	completion.payload_ptr = m_curr_d_addr;
 	completion.payload_length = m_curr_batch_starting_stride * m_stride_size;
 	completion.packets = m_curr_packets;
@@ -288,8 +289,8 @@ inline mp_loop_result ring_eth_cb::mp_loop(size_t limit)
 }
 
 /*
- *  all wQe are contagious in memory so we need to return to the user
- *  true if last wqe was posted so were at the end of the buffer
+ *  all WQE are contagious in memory so we need to return to the user
+ *  true if last WQE was posted so we're at the end of the buffer
  *
  */
 inline bool ring_eth_cb::reload_wq()

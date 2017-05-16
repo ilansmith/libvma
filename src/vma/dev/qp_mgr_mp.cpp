@@ -101,7 +101,7 @@ int qp_mgr_mp::prepare_ibv_qp(vma_ibv_qp_init_attr& qp_init_attr)
 	wq_init_attr.comp_mask |= IBV_EXP_CREATE_WQ_MP_RQ;
 	wq_init_attr.mp_rq.use_shift = IBV_EXP_MP_RQ_NO_SHIFT;
 	wq_init_attr.mp_rq.single_wqe_log_num_of_strides =
-				m_p_mp_ring->et_single_wqe_log_num_of_strides();
+				m_p_mp_ring->get_single_wqe_log_num_of_strides();
 	wq_init_attr.mp_rq.single_stride_log_num_of_bytes =
 				m_p_mp_ring->get_single_stride_log_num_of_bytes();
 

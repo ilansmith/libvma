@@ -171,10 +171,10 @@ struct __attribute__ ((packed)) vma_info_t {
 	struct timespec		sw_timestamp;
 };
 
-enum vma_completion_mp_mask {
+typedef enum {
 	VMA_MP_MASK_HDR_PTR = (1 << 0),
 	VMA_MP_MASK_TIMESTAMP = (1 << 1),
-};
+} vma_completion_mp_mask;
 
 /**
  * @param comp_mask attributes you want to get from @ref vma_cyclic_buffer_read.
@@ -205,7 +205,7 @@ struct vma_completion_cb_t {
 
 typedef int vma_ring_profile_key;
 
-enum ring_logic_t {
+typedef enum {
 	RING_LOGIC_PER_INTERFACE = 0,           //!< RING_LOGIC_PER_INTERFACE
 	RING_LOGIC_PER_SOCKET = 10,             //!< RING_LOGIC_PER_SOCKET
 	RING_LOGIC_PER_USER_ID = 11,             //!< RING_LOGIC_PER_USER_ID
@@ -213,14 +213,14 @@ enum ring_logic_t {
 	RING_LOGIC_PER_CORE = 30,               //!< RING_LOGIC_PER_CORE
 	RING_LOGIC_PER_CORE_ATTACH_THREADS = 31,//!< RING_LOGIC_PER_CORE_ATTACH_THREADS
 	RING_LOGIC_LAST                         //!< RING_LOGIC_LAST
-};
+} ring_logic_t;
 
-enum vma_ring_alloc_logic_attr_comp_mask {
+typedef enum {
 	VMA_RING_ALLOC_MASK_RING_PROFILE_KEY = (1 << 0),
 	VMA_RING_ALLOC_MASK_RING_USER_ID = (1 << 1),
 	VMA_RING_ALLOC_MASK_RING_INGRESS = (1 << 2),
 	VMA_RING_ALLOC_MASK_RING_ENGRESS = (1 << 3),
-};
+} vma_ring_alloc_logic_attr_comp_mask;
 
 /**
  * @brief pass this struct to vma using setsockopt with @ref SO_VMA_RING_ALLOC_LOGIC
@@ -228,10 +228,10 @@ enum vma_ring_alloc_logic_attr_comp_mask {
  * 	@note ring_alloc_logic is a mandatory
  * @param comp_mask - what fields are read when processing this sturct
  * 	see @ref vma_ring_alloc_logic_attr_comp_mask
+ * @param ring_alloc_logic- allocation ratio to use
  * @param ring_profile_key - what ring profile to use - get the profile when
  * 	creating ring using @ref vma_add_ring_profile in extra_api
  * 	can only be set once
-  * @param ring_alloc_logic- allocation ratio to use
  * @param user_idx - when used RING_LOGIC_PER_USER_ID int @ref ring_alloc_logic
  * 	this is the user id to define. This lets you define the same ring for
  * 	few FD's regardless the interface\thread\core.
@@ -248,9 +248,9 @@ struct vma_ring_alloc_logic_attr {
 	uint32_t	reserved:30;
 };
 
-enum vma_cyclic_buffer_ring_attr_comp_mask {
+typedef enum {
 	CB_COMP_HDR_BYTE = (1 << 0),
-};
+} vma_cyclic_buffer_ring_attr_comp_mask;
 
 /**
  * @param comp_mask - what fields are read when processing this sturct
@@ -282,13 +282,15 @@ struct vma_packet_queue_ring_attr {
 	uint32_t	comp_mask;
 };
 
-enum vma_ring_type_attr_mask {
-};
+typedef enum {
+	// for future use
+	VMA_RING_ATTR_LAST
+} vma_ring_type_attr_mask;
 
-enum vma_ring_type {
+typedef enum {
 	VMA_RING_PACKET,
 	VMA_RING_CYCLIC_BUFFER
-};
+} vma_ring_type;
 
 /**
  * @param comp_mask - what fields are read when processing this sturct

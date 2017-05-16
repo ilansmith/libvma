@@ -60,6 +60,7 @@ class ring_alloc_logic_attr
 {
 public:
 	ring_alloc_logic_attr();
+	ring_alloc_logic_attr(ring_logic_t ring_logic);
 	ring_alloc_logic_attr(const ring_alloc_logic_attr &other);
 
 	/* ring allocation logic , per thread per fd ... */
