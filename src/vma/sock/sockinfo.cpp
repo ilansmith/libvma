@@ -113,6 +113,7 @@ sockinfo::sockinfo(int fd) throw (vma_exception):
 	m_vma_poll_completion = NULL;
 	m_vma_poll_last_buff_lst = NULL;
 #endif // DEFINED_VMAPOLL 
+       printf("XXX sizeof(%s):%lu\n", __FUNCTION__, sizeof(*this));
 }
 
 sockinfo::~sockinfo()
