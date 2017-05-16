@@ -1724,7 +1724,7 @@ ssize_t sockinfo_tcp::rx(const rx_call_t call_type, iovec* p_iov, ssize_t sz_iov
 
 	si_tcp_logfunc("something in rx queues: %d %p", m_n_rx_pkt_ready_list_count, m_rx_pkt_ready_list.front());
 
-	total_rx = dequeue_packet(p_iov, sz_iov, (sockaddr_in *)__from, __fromlen, in_flags, &out_flags);
+	total_rx = dequeue_packet(p_iov, sz_iov, (sockaddr_in *)__from, __fromlen, in_flags, &out_flags, m_rx_pkt_ready_list.front());
 
 	/*
 	* RCVBUFF Accounting: Going 'out' of the internal buffer: if some bytes are not tcp_recved yet  - do that.
@@ -1752,6 +1752,28 @@ ssize_t sockinfo_tcp::rx(const rx_call_t call_type, iovec* p_iov, ssize_t sz_iov
 #endif
 
 	return total_rx;
+}
+
+// Move all owner's rx ready packets to 'toq'
+void sockinfo_tcp::move_owned_rx_ready_descs(const mem_buf_desc_owner* p_desc_owner, descq_t *toq)
+{
+	// Assume locked by owner!!!
+
+	mem_buf_desc_t *temp;
+	const size_t size = m_rx_pkt_ready_list.size();
+	for (size_t i = 0 ; i < size; i++) {
+		temp = m_rx_pkt_ready_list.get_and_pop_front();
+		if (temp->p_desc_owner != p_desc_owner) {
+			m_rx_pkt_ready_list.push_back(temp);
+			continue;
+		}
+		m_n_rx_pkt_ready_list_count--;
+		m_p_socket_stats->n_rx_ready_pkt_count--;
+
+		m_rx_ready_byte_count -= temp->rx.sz_payload;
+		m_p_socket_stats->n_rx_ready_byte_count -= temp->rx.sz_payload;
+		toq->push_back(temp);
+	}
 }
 
 void sockinfo_tcp::register_timer()
@@ -2750,24 +2772,6 @@ void sockinfo_tcp::create_flow_tuple_key_from_pcb(flow_tuple &key, struct tcp_pc
 {
 	key = flow_tuple(pcb->local_ip.addr, htons(pcb->local_port), pcb->remote_ip.addr, htons(pcb->remote_port), PROTO_TCP);
 }
-
-mem_buf_desc_t* sockinfo_tcp::get_front_m_rx_pkt_ready_list(){
-	return m_rx_pkt_ready_list.front();
-}
-
-size_t sockinfo_tcp::get_size_m_rx_pkt_ready_list(){
-	return m_rx_pkt_ready_list.size();
-}
-
-void sockinfo_tcp::pop_front_m_rx_pkt_ready_list(){
-	m_rx_pkt_ready_list.pop_front();
-}
-
-void sockinfo_tcp::push_back_m_rx_pkt_ready_list(mem_buf_desc_t* buff){
-	m_rx_pkt_ready_list.push_back(buff);
-}
-
-
 
 struct tcp_pcb* sockinfo_tcp::get_syn_received_pcb(const flow_tuple &key) const
 {

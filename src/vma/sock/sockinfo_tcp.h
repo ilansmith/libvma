@@ -377,16 +377,12 @@ private:
 	inline void 	reuse_buffer(mem_buf_desc_t *buff);
 	virtual mem_buf_desc_t *get_next_desc(mem_buf_desc_t *p_desc);
 	virtual	mem_buf_desc_t* get_next_desc_peek(mem_buf_desc_t *p_desc, int& rx_pkt_ready_list_idx);
+	virtual	void move_owned_rx_ready_descs(const mem_buf_desc_owner* p_desc_owner, descq_t *toq);
 	virtual void 	post_deqeue(bool release_buff);
 	virtual int 	zero_copy_rx(iovec *p_iov, mem_buf_desc_t *pdesc, int *p_flags);
 	struct tcp_pcb* get_syn_received_pcb(const flow_tuple &key) const;
 	struct tcp_pcb* get_syn_received_pcb(in_addr_t src_addr, in_port_t src_port, in_addr_t dest_addr,
             							 in_port_t dest_port, int protocol, in_addr_t local_addr);
-
-	virtual	mem_buf_desc_t* get_front_m_rx_pkt_ready_list();
-	virtual	size_t get_size_m_rx_pkt_ready_list();
-	virtual	void pop_front_m_rx_pkt_ready_list();
-	virtual	void push_back_m_rx_pkt_ready_list(mem_buf_desc_t* buff);
 
 	// stats
 	uint64_t m_n_pbufs_rcvd;
