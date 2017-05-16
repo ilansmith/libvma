@@ -1382,7 +1382,7 @@ ssize_t sockinfo_udp::rx(const rx_call_t call_type, iovec* p_iov,ssize_t sz_iov,
 		if (m_n_rx_pkt_ready_list_count > 0) {
 			// Found a ready packet in the list
 			if (__msg) handle_cmsg(__msg);
-			ret = dequeue_packet(p_iov, sz_iov, (sockaddr_in *)__from, __fromlen, in_flags, &out_flags);
+			ret = dequeue_packet(p_iov, sz_iov, (sockaddr_in *)__from, __fromlen, in_flags, &out_flags, m_rx_pkt_ready_list.front());
 			goto out;
 		}
 		m_lock_rcv.unlock();
@@ -1401,7 +1401,7 @@ wait:
 		// Got 0, means we might have a ready packet
 		if (m_n_rx_pkt_ready_list_count > 0) {
 			if (__msg) handle_cmsg(__msg);
-			ret = dequeue_packet(p_iov, sz_iov, (sockaddr_in *)__from, __fromlen, in_flags, &out_flags);
+			ret = dequeue_packet(p_iov, sz_iov, (sockaddr_in *)__from, __fromlen, in_flags, &out_flags, m_rx_pkt_ready_list.front());
 			goto out;
 		} else {
 			m_lock_rcv.unlock();
@@ -2220,6 +2220,29 @@ void sockinfo_udp::rx_del_ring_cb(flow_tuple_with_local_if &flow_key, ring* p_ri
 	}
 }
 
+// Move all owner's rx ready packets to 'toq'
+void sockinfo_udp::move_owned_rx_ready_descs(const mem_buf_desc_owner* p_desc_owner, descq_t *toq)
+{
+	// Assume locked by owner!!!
+
+	mem_buf_desc_t *temp;
+	const size_t size = m_rx_pkt_ready_list.size();
+	for (size_t i = 0 ; i < size; i++) {
+		temp = m_rx_pkt_ready_list.front();
+		m_rx_pkt_ready_list.pop_front();
+		if (temp->p_desc_owner != p_desc_owner) {
+			m_rx_pkt_ready_list.push_back(temp);
+			continue;
+		}
+		m_n_rx_pkt_ready_list_count--;
+		m_p_socket_stats->n_rx_ready_pkt_count--;
+
+		m_rx_ready_byte_count -= temp->rx.sz_payload;
+		m_p_socket_stats->n_rx_ready_byte_count -= temp->rx.sz_payload;
+		toq->push_back(temp);
+	}
+}
+
 void sockinfo_udp::set_blocking(bool is_blocked)
 {
 	sockinfo::set_blocking(is_blocked);
@@ -2633,22 +2656,6 @@ size_t sockinfo_udp::handle_msg_trunc(size_t total_rx, size_t payload_size, int 
 	} 
 
 	return total_rx;
-}
-
-mem_buf_desc_t* sockinfo_udp::get_front_m_rx_pkt_ready_list(){
-	return m_rx_pkt_ready_list.front();
-}
-
-size_t sockinfo_udp::get_size_m_rx_pkt_ready_list(){
-	return m_rx_pkt_ready_list.size();
-}
-
-void sockinfo_udp::pop_front_m_rx_pkt_ready_list(){
-	m_rx_pkt_ready_list.pop_front();
-}
-
-void sockinfo_udp::push_back_m_rx_pkt_ready_list(mem_buf_desc_t* buff){
-	m_rx_pkt_ready_list.push_back(buff);
 }
 
 bool sockinfo_udp::prepare_to_close(bool process_shutdown) {

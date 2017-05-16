@@ -1047,29 +1047,6 @@ void sockinfo::rx_del_ring_cb(flow_tuple_with_local_if &flow_key, ring* p_ring, 
 	lock_rx_q();
 }
 
-// Move all owner's rx ready packets to 'toq'
-void sockinfo::move_owned_rx_ready_descs(const mem_buf_desc_owner* p_desc_owner, descq_t *toq)
-{
-	// Assume locked by owner!!!
-
-	mem_buf_desc_t *temp;
-	const size_t size = get_size_m_rx_pkt_ready_list();
-	for (size_t i = 0 ; i < size; i++) {
-		temp = get_front_m_rx_pkt_ready_list();
-		pop_front_m_rx_pkt_ready_list();
-		if (temp->p_desc_owner != p_desc_owner) {
-			push_back_m_rx_pkt_ready_list(temp);
-			continue;
-		}
-		m_n_rx_pkt_ready_list_count--;
-		m_p_socket_stats->n_rx_ready_pkt_count--;
-
-		m_rx_ready_byte_count -= temp->rx.sz_payload;
-		m_p_socket_stats->n_rx_ready_byte_count -= temp->rx.sz_payload;
-		toq->push_back(temp);
-	}
-}
-
 bool sockinfo::attach_as_uc_receiver(role_t role, bool skip_rules /* = false */)
 {
 	sock_addr addr(m_bound.get_p_sa());

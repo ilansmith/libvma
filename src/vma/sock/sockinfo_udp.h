@@ -274,6 +274,7 @@ private:
 	virtual inline void			reuse_buffer(mem_buf_desc_t *buff);
 	virtual 	mem_buf_desc_t*	get_next_desc (mem_buf_desc_t *p_desc);
 	virtual		mem_buf_desc_t* get_next_desc_peek(mem_buf_desc_t *p_desc, int& rx_pkt_ready_list_idx);
+	virtual		void move_owned_rx_ready_descs(const mem_buf_desc_owner* p_desc_owner, descq_t *toq);
 
 	inline bool	rx_process_udp_packet_full(mem_buf_desc_t* p_desc, void* pv_fd_ready_array);
 	inline bool	rx_process_udp_packet_partial(mem_buf_desc_t* p_desc, void* pv_fd_ready_array);
@@ -293,10 +294,5 @@ private:
 	inline void	handle_recv_timestamping(struct cmsg_state *cm_state);
 	inline void	insert_cmsg(struct cmsg_state *cm_state, int level, int type, void *data, int len);
 	inline void	handle_cmsg(struct msghdr * msg);
-
-	virtual	mem_buf_desc_t* get_front_m_rx_pkt_ready_list();
-	virtual	size_t get_size_m_rx_pkt_ready_list();
-	virtual	void pop_front_m_rx_pkt_ready_list();
-	virtual	void push_back_m_rx_pkt_ready_list(mem_buf_desc_t* buff);
 };
 #endif

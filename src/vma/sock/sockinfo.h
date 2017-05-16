@@ -217,11 +217,6 @@ protected:
 	virtual int getsockopt(int __level, int __optname, void *__optval, socklen_t *__optlen) throw (vma_error);
 #endif // DEFINED_VMAPOLL	
 
-	virtual	mem_buf_desc_t* get_front_m_rx_pkt_ready_list() = 0;
-	virtual	size_t get_size_m_rx_pkt_ready_list() = 0;
-	virtual	void pop_front_m_rx_pkt_ready_list() = 0;
-	virtual	void push_back_m_rx_pkt_ready_list(mem_buf_desc_t* buff) = 0;
-
 	int 			rx_wait(int &poll_count, bool is_blocking = true);
 	int 			rx_wait_helper(int &poll_count, bool is_blocking = true);
 
@@ -261,7 +256,7 @@ protected:
 
 	void 			destructor_helper();
 
-	void 			move_owned_rx_ready_descs(const mem_buf_desc_owner* p_desc_owner, descq_t* toq); // Move all owner's rx ready packets ro 'toq'
+	virtual void		move_owned_rx_ready_descs(const mem_buf_desc_owner* p_desc_owner, descq_t* toq) = 0; // Move all owner's rx ready packets ro 'toq'
 
 	virtual bool try_un_offloading(); // un-offload the socket if possible
 #ifdef DEFINED_VMAPOLL	
@@ -339,9 +334,8 @@ protected:
 
 	inline int dequeue_packet(iovec *p_iov, ssize_t sz_iov,
 		                  sockaddr_in *__from, socklen_t *__fromlen,
-		                  int in_flags, int *p_out_flags)
+		                  int in_flags, int *p_out_flags, mem_buf_desc_t *pdesc)
 	{
-		mem_buf_desc_t *pdesc;
 		int total_rx = 0;
 		uint32_t nbytes, pos;
 		bool relase_buff = true;
@@ -350,7 +344,6 @@ protected:
 		int rx_pkt_ready_list_idx = 1;
 		int rx_pkt_ready_offset = m_rx_pkt_ready_offset;
 
-		pdesc = get_front_m_rx_pkt_ready_list();
 		void *iov_base = (uint8_t*)pdesc->rx.frag.iov_base + m_rx_pkt_ready_offset;
 		size_t bytes_left = pdesc->rx.frag.iov_len - m_rx_pkt_ready_offset;
 		size_t payload_size = pdesc->rx.sz_payload;
