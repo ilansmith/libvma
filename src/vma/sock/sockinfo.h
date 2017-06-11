@@ -116,8 +116,6 @@ public:
 #if _BullseyeCoverage
     #pragma BullseyeCoverage on
 #endif
-	int get_ratelimit() {return m_so_ratelimit;}
-
 	virtual void consider_rings_migration();
 
 	virtual int add_epoll_context(epfd_info *epfd);

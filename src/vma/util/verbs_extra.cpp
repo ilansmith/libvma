@@ -331,7 +331,7 @@ int priv_ibv_modify_qp_ratelimit(struct ibv_qp *qp, uint32_t ratelimit_kbps )
 	vma_ibv_qp_attr qp_attr;
 
 	if (priv_ibv_query_qp_state(qp) != IBV_QPS_RTS) {
-		vlog_printf(VLOG_DEBUG, "failed querying QP ");
+		vlog_printf(VLOG_DEBUG, "failed querying QP");
 		return -1;
 	}
 	memset(&qp_attr, 0, sizeof(qp_attr));

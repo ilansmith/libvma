@@ -946,7 +946,7 @@ err_t sockinfo_tcp::ip_output_syn_ack(struct pbuf *p, void* v_p_conn, int is_rex
 	if (is_rexmit)
 		p_si_tcp->m_p_socket_stats->counters.n_tx_retransmits++;
 
-	((dst_entry_tcp*)p_dst)->slow_send_neigh(p_iovec, count, p_si_tcp->get_ratelimit());
+	((dst_entry_tcp*)p_dst)->slow_send_neigh(p_iovec, count, p_si_tcp->m_so_ratelimit);
 
 	return ERR_OK;
 }
