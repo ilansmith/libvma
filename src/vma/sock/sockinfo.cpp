@@ -1222,20 +1222,17 @@ int sockinfo::get_rings_num()
 
 int* sockinfo::get_rings_fds(int &res_length)
 {
+	res_length = get_rings_num();
+
 #ifdef DEFINED_VMAPOLL
-	int* channel_fds = m_p_rx_ring->get_rx_channel_fds();
-	res_length = 1;
-	return channel_fds;
+	return m_p_rx_ring->get_rx_channel_fds();
 #else
-	int count = get_rings_num();
 	int index = 0;
 
 	if (m_rings_fds) {
-		res_length = count;
 		return m_rings_fds;
 	}
-	res_length = count;
-	m_rings_fds = new int[count];
+	m_rings_fds = new int[res_length];
 
 	rx_ring_map_t::iterator it = m_rx_ring_map.begin();
 	for (; it != m_rx_ring_map.end(); ++it) {
