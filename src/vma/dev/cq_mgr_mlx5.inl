@@ -34,9 +34,10 @@
 #ifndef CQ_MGR_MLX5_INL_H
 #define CQ_MGR_MLX5_INL_H
 
-#include "dev/cq_mgr_mlx5.h"
-
 #ifdef HAVE_INFINIBAND_MLX5_HW_H
+
+#include <infiniband/mlx5_hw.h>
+#include "dev/cq_mgr_mlx5.h"
 
 /**/
 /** inlining functions can only help if they are implemented before their usage **/
