@@ -58,7 +58,7 @@ enum mp_loop_result {
 
 class cq_mgr_mp;
 
-class ring_eth_cb : public ring_eth
+class ring_eth_cb : public ring_eth, public timer_handler
 {
 public:
 	ring_eth_cb(in_addr_t local_if,
@@ -108,17 +108,19 @@ private:
 	// workaround for bug #1070678 consume all first WQE in VMA
 	bool				m_first_call;
 #ifdef ENABLE_MP_RQ_TIMSTAMP_DUMP
-	size_t				m_vec_start_size;
-	time_vec			m_ts_collector;
-	uint64_t			*m_raw_collector;
-	size_t				m_raw_collector_idx;
+	int				m_raw_timestamp_idx;
+	int				m_raw_timestamp_write_array; 
+	uint64_t*			m_raw_timestamp[2];
 	char				m_path[PATH_MAX];
+	std::ofstream			m_file;
 	time_t				m_start_time;
-	void				dump_cqe_timestamp();
 #endif
+	inline void			record_raw_timestamp(uint64_t timestamp);
+	inline void			dump_cqe_timestamp();
 	inline mp_loop_result		mp_loop(size_t limit);
 	inline bool			reload_wq();
 	void 				consume_first_wqe();
+	void				handle_timer_expired(void* user_data);
 };
 
 #endif /* HAVE_MP_RQ */
