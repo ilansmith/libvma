@@ -42,6 +42,14 @@
 #define MAX_MP_WQES			20 // limit max used memory
 #define MIN_MP_WQES			2
 
+
+#ifdef ENABLE_MP_RQ_TIMSTAMP_DUMP
+#include <vector>
+
+typedef std::vector<timespec> time_vec;
+typedef std::vector<uint64_t> raw_vec;
+#endif
+
 enum mp_loop_result {
 	MP_LOOP_DRAINED,
 	MP_LOOP_LIMIT,
@@ -99,6 +107,15 @@ private:
 	struct timespec			m_curr_hw_timestamp;
 	// workaround for bug #1070678 consume all first WQE in VMA
 	bool				m_first_call;
+#ifdef ENABLE_MP_RQ_TIMSTAMP_DUMP
+	size_t				m_vec_start_size;
+	time_vec			m_ts_collector;
+	uint64_t			*m_raw_collector;
+	size_t				m_raw_collector_idx;
+	char				m_path[PATH_MAX];
+	time_t				m_start_time;
+	void				dump_cqe_timestamp();
+#endif
 	inline mp_loop_result		mp_loop(size_t limit);
 	inline bool			reload_wq();
 	void 				consume_first_wqe();
