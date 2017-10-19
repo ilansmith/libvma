@@ -66,7 +66,7 @@ transport_t dst_entry_tcp::get_transport(sockaddr_in to)
 	return TRANS_VMA;
 }
 
-ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, bool is_dummy, bool b_blocked /*= true*/, bool is_rexmit /*= false*/)
+ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, bool is_dummy, bool b_blocked /*= true*/, bool is_rexmit /*= false*/, int is_mac_dummy /*= false*/)
 {
 	int ret = 0;
 	tx_packet_template_t* p_pkt;
@@ -91,7 +91,12 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, bool 
 	if (likely(no_copy)) {
 		p_pkt = (tx_packet_template_t*)((uint8_t*)p_tcp_iov[0].iovec.iov_base - m_header.m_aligned_l2_l3_len);
 		total_packet_len = p_tcp_iov[0].iovec.iov_len + m_header.m_total_hdr_len;
-		m_header.copy_l2_ip_hdr(p_pkt);
+		if (is_mac_dummy) {
+			m_header.copy_fake_l2_ip_hdr(p_pkt);
+		} else {
+			m_header.copy_l2_ip_hdr(p_pkt);
+		}
+
 		// We've copied to aligned address, and now we must update p_pkt to point to real
 		// L2 header
 		//p_pkt = (tx_packet_template_t*)((uint8_t*)p_pkt + hdr_alignment_diff);
@@ -134,8 +139,11 @@ ssize_t dst_entry_tcp::fast_send(const iovec* p_iov, const ssize_t sz_iov, bool 
 			goto out;
 		}
 
-		m_header.copy_l2_ip_hdr((tx_packet_template_t*)p_mem_buf_desc->p_buffer);
-
+		if (is_mac_dummy) {
+			m_header.copy_fake_l2_ip_hdr((tx_packet_template_t*)p_mem_buf_desc->p_buffer);
+		} else {
+			m_header.copy_l2_ip_hdr((tx_packet_template_t*)p_mem_buf_desc->p_buffer);
+		}
 		// Actually this is not the real packet len we will subtract the alignment diff at the end of the copy
 		total_packet_len = m_header.m_aligned_l2_l3_len;
 

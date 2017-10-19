@@ -77,7 +77,9 @@ void dst_entry_udp::configure_headers()
 	dst_entry::configure_headers();
 }
 
-inline ssize_t dst_entry_udp::fast_send_not_fragmented(const iovec* p_iov, const ssize_t sz_iov, vma_wr_tx_packet_attr attr,  size_t sz_udp_payload, ssize_t sz_data_payload)
+inline ssize_t dst_entry_udp::fast_send_not_fragmented(const iovec* p_iov,
+		const ssize_t sz_iov, vma_wr_tx_packet_attr attr,
+		size_t sz_udp_payload, ssize_t sz_data_payload, int is_mac_dummy)
 {
 	mem_buf_desc_t* p_mem_buf_desc;
         bool b_blocked = is_set(attr, VMA_TX_PACKET_BLOCK);
@@ -105,7 +107,8 @@ inline ssize_t dst_entry_udp::fast_send_not_fragmented(const iovec* p_iov, const
 	set_tx_buff_list_pending(false);
 
 	// Check if inline is possible
-	if (sz_iov == 1 && (sz_data_payload + m_header.m_total_hdr_len) < m_max_inline) {
+	// need to add support for spoof MAC in inline messages
+	if (sz_iov == 1 && (sz_data_payload + m_header.m_total_hdr_len) < m_max_inline && !is_mac_dummy) {
 		m_p_send_wqe = &m_inline_send_wqe;
 
 		m_header.m_header.hdr.m_udp_hdr.len = htons((uint16_t)sz_udp_payload);
@@ -125,8 +128,11 @@ inline ssize_t dst_entry_udp::fast_send_not_fragmented(const iovec* p_iov, const
 			prefetch_range(p_mem_buf_desc->p_buffer + m_header.m_transport_header_tx_offset,
 					min(sz_udp_payload, (size_t)m_n_sysvar_tx_prefetch_bytes));
 		}
-
-		m_header.copy_l2_ip_udp_hdr(p_pkt);
+		if (is_mac_dummy) {
+			m_header.copy_fake_l2_ip_udp_hdr(p_pkt);
+		} else {
+			m_header.copy_l2_ip_udp_hdr(p_pkt);
+		}
 		p_pkt->hdr.m_udp_hdr.len = htons((uint16_t)sz_udp_payload);
 		p_pkt->hdr.m_ip_hdr.frag_off = htons(0);
 
@@ -173,7 +179,7 @@ inline ssize_t dst_entry_udp::fast_send_not_fragmented(const iovec* p_iov, const
 	return sz_data_payload;
 }
 
-ssize_t dst_entry_udp::fast_send_fragmented(const iovec* p_iov, const ssize_t sz_iov, vma_wr_tx_packet_attr attr, size_t sz_udp_payload, ssize_t sz_data_payload)
+ssize_t dst_entry_udp::fast_send_fragmented(const iovec* p_iov, const ssize_t sz_iov, vma_wr_tx_packet_attr attr, size_t sz_udp_payload, ssize_t sz_data_payload, int is_mac_dummy)
 {
 	tx_packet_template_t *p_pkt;
 	mem_buf_desc_t* p_mem_buf_desc = NULL, *tmp;
@@ -229,7 +235,12 @@ ssize_t dst_entry_udp::fast_send_fragmented(const iovec* p_iov, const ssize_t sz
 		}
 
 		if (n_ip_frag_offset == 0) {
-			m_header.copy_l2_ip_udp_hdr(p_pkt);
+			if (is_mac_dummy) {
+				m_header.copy_fake_l2_ip_udp_hdr(p_pkt);
+			} else {
+				m_header.copy_l2_ip_udp_hdr(p_pkt);
+			}
+
 			// Add count of udp header length
 			hdr_len += sizeof(udphdr);
 
@@ -240,7 +251,11 @@ ssize_t dst_entry_udp::fast_send_fragmented(const iovec* p_iov, const ssize_t sz
 			p_pkt->hdr.m_udp_hdr.len = htons((uint16_t)sz_udp_payload);
 		}
 		else {
-			m_header.copy_l2_ip_hdr(p_pkt);
+			if (is_mac_dummy) {
+				m_header.copy_fake_l2_ip_hdr(p_pkt);
+			} else {
+				m_header.copy_l2_ip_hdr(p_pkt);
+			}
 			frag_off |= FRAGMENT_OFFSET & (n_ip_frag_offset / 8);
 		}
 
@@ -296,7 +311,8 @@ ssize_t dst_entry_udp::fast_send_fragmented(const iovec* p_iov, const ssize_t sz
 }
 
 ssize_t dst_entry_udp::fast_send(const iovec* p_iov, const ssize_t sz_iov,
-				bool is_dummy, bool b_blocked /*=true*/, bool is_rexmit /*=false*/)
+				bool is_dummy, bool b_blocked /*=true*/,
+				bool is_rexmit /*=false*/, int is_mac_dummy /*= false*/)
 {
 	NOT_IN_USE(is_rexmit);
 
@@ -316,9 +332,9 @@ ssize_t dst_entry_udp::fast_send(const iovec* p_iov, const ssize_t sz_iov,
 	size_t sz_udp_payload = sz_data_payload + sizeof(struct udphdr);
 	vma_wr_tx_packet_attr attr = (vma_wr_tx_packet_attr)((VMA_TX_PACKET_BLOCK * b_blocked) | (VMA_TX_PACKET_DUMMY * is_dummy));
 	if (sz_udp_payload <= (size_t)m_max_udp_payload_size) {
-		return fast_send_not_fragmented(p_iov, sz_iov, attr, sz_udp_payload, sz_data_payload);
+		return fast_send_not_fragmented(p_iov, sz_iov, attr, sz_udp_payload, sz_data_payload, is_mac_dummy);
 	} else {
-		return fast_send_fragmented(p_iov, sz_iov, attr, sz_udp_payload, sz_data_payload);
+		return fast_send_fragmented(p_iov, sz_iov, attr, sz_udp_payload, sz_data_payload, is_mac_dummy);
 	}
 }
 
@@ -348,7 +364,7 @@ ssize_t dst_entry_udp::slow_send(const iovec* p_iov, size_t sz_iov, bool is_dumm
 			ret_val = pass_buff_to_neigh(p_iov, sz_iov);
 		}
 		else {
-			ret_val = fast_send(p_iov, sz_iov, is_dummy, b_blocked);
+			ret_val = fast_send(p_iov, sz_iov, is_dummy, b_blocked, false, flags & MSG_SPOOF_MAC);
 		}
 	}
 

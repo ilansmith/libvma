@@ -1875,7 +1875,7 @@ ssize_t sockinfo_udp::tx(const tx_call_t call_type, const iovec* p_iov, const ss
 
 		if (likely(p_dst_entry->is_valid())) {
 			// All set for fast path packet sending - this is our best performance flow
-			ret = p_dst_entry->fast_send((iovec*)p_iov, sz_iov, is_dummy, b_blocking);
+			ret = p_dst_entry->fast_send((iovec*)p_iov, sz_iov, is_dummy, b_blocking, false, __flags & MSG_SPOOF_MAC);
 		}
 		else {
 			// updates the dst_entry internal information and packet headers

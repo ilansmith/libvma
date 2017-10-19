@@ -44,7 +44,10 @@ public:
 	virtual ~dst_entry_udp();
 
 	virtual ssize_t 	slow_send(const iovec* p_iov, size_t sz_iov, bool is_dummy, const int ratelimit_kbps, bool b_blocked = true, bool is_rexmit = false, int flags = 0, socket_fd_api* sock = 0, tx_call_t call_type = TX_UNDEF);
-	virtual ssize_t 	fast_send(const iovec* p_iov, const ssize_t sz_iov, bool is_dummy, bool b_blocked = true, bool is_rexmit = false);
+	virtual ssize_t 	fast_send(const iovec* p_iov,
+				const ssize_t sz_iov, bool is_dummy,
+				bool b_blocked = true, bool is_rexmit = false,
+				int is_mac_dummy = false);
 
 protected:
 	virtual transport_t 	get_transport(sockaddr_in to);
@@ -60,8 +63,13 @@ protected:
 
 private:
 
-	inline ssize_t fast_send_not_fragmented(const iovec* p_iov, const ssize_t sz_iov, vma_wr_tx_packet_attr attr, size_t sz_udp_payload, ssize_t sz_data_payload);
-	ssize_t fast_send_fragmented(const iovec* p_iov, const ssize_t sz_iov, vma_wr_tx_packet_attr attr, size_t sz_udp_payload, ssize_t sz_data_payload);
+	inline ssize_t fast_send_not_fragmented(const iovec* p_iov,
+			const ssize_t sz_iov, vma_wr_tx_packet_attr attr,
+			size_t sz_udp_payload, ssize_t sz_data_payload,
+			int is_mac_dummy=false);
+	ssize_t fast_send_fragmented(const iovec* p_iov, const ssize_t sz_iov,
+			vma_wr_tx_packet_attr attr, size_t sz_udp_payload,
+			ssize_t sz_data_payload, int is_mac_dummy = false);
 
 	const uint32_t m_n_sysvar_tx_bufs_batch_udp;
 	const bool m_b_sysvar_tx_nonblocked_eagains;

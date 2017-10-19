@@ -43,6 +43,7 @@
  */
 #define MSG_VMA_ZCOPY_FORCE	0x01000000 // don't fallback to bcopy
 #define	MSG_VMA_ZCOPY		0x00040000 // return: zero copy was done
+#define MSG_SPOOF_MAC          0x44000000
 
 /*
  * Options for setsockopt()/getsockopt()

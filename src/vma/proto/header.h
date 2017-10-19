@@ -85,14 +85,15 @@ struct __attribute__ ((packed)) tx_hdr_template_t  {		// Offeset  Size
 	l2_hdr_template_t	m_l2_hdr;			//    0      20
 	iphdr			m_ip_hdr;			//   20      20
 	union {
-	udphdr			m_udp_hdr;			//   40       8
-	tcphdr			m_tcp_hdr;			//   40	     20
+		udphdr			m_udp_hdr;			//   40       8
+		tcphdr			m_tcp_hdr;			//   40	     20
 	};
 };
 
 union tx_packet_template_t {
 	tx_hdr_template_t	hdr;
 	uint32_t		words[15]; //change in tx_hdr_template_t size may require to modify this array size
+	uint8_t			raw[15]; //change in tx_hdr_template_t size may require to modify this array size
 };
 
 
@@ -130,12 +131,33 @@ public:
 		p_hdr->words[9] = m_header.words[9]; // IP-> daddr(32)
 	}
 
+	inline void copy_fake_l2_ip_hdr(tx_packet_template_t *p_hdr)
+	{
+		copy_l2_ip_hdr(p_hdr);
+//		memcpy(&p_hdr->raw[dst_mac_offset], &p_hdr->raw[src_mac_offset], ETH_ALEN);
+//		memset(&p_hdr->raw[dst_mac_offset], 0,ETH_ALEN);
+//		memset(&p_hdr->raw[src_mac_offset],0,ETH_ALEN);
+//		p_hdr->hdr.m_ip_hdr.daddr = 0;//p_hdr->hdr.m_ip_hdr.saddr;
+//		p_hdr->hdr.m_ip_hdr.saddr = 0;//p_hdr->hdr.m_ip_hdr.saddr;
+//		p_hdr->hdr.m_l2_hdr.eth_hdr.m_eth_hdr.h_proto = 0;
+		memset(&p_hdr->hdr.m_ip_hdr,0,sizeof(p_hdr->hdr.m_ip_hdr));
+		memset(&p_hdr->hdr.m_l2_hdr,0,sizeof(p_hdr->hdr.m_l2_hdr));
+	}
+
 	inline void copy_l2_ip_udp_hdr(tx_packet_template_t *p_hdr)
 	{
 		copy_l2_ip_hdr(p_hdr);
 		p_hdr->words[10] = m_header.words[10]; // UDP-> sport(16) + dst_port(16)
 		p_hdr->words[11] = m_header.words[11]; // UDP-> len(16) + check(16)
 	}
+
+	inline void copy_fake_l2_ip_udp_hdr(tx_packet_template_t *p_hdr)
+	{
+		copy_fake_l2_ip_hdr(p_hdr);
+		p_hdr->words[10] = m_header.words[10]; // UDP-> sport(16) + dst_port(16)
+		p_hdr->words[11] = m_header.words[11]; // UDP-> len(16) + check(16)
+	}
+
 
 	inline void copy_l2_hdr(tx_packet_template_t *p_hdr)
 	{
@@ -150,13 +172,16 @@ public:
 
 	uintptr_t m_actual_hdr_addr;
 	tx_packet_template_t m_header;
-	size_t m_udp_header_len;
+	size_t m_udp_header_len; // remove
 	size_t m_ip_header_len;
 	size_t m_transport_header_len;
 	size_t m_total_hdr_len;
 	size_t m_aligned_l2_l3_len;
 	size_t m_transport_header_tx_offset;
 	transport_type_t m_transport_type;
+	// used for spoofing to copy the right offset with\without vlan
+	uint8_t src_mac_offset;
+	uint8_t dst_mac_offset;
 };
 
 #endif /* HEADER_H */
