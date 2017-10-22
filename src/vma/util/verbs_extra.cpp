@@ -338,6 +338,8 @@ int priv_ibv_modify_qp_ratelimit(struct ibv_qp *qp, uint32_t ratelimit_kbps )
 	}
 	memset(&qp_attr, 0, sizeof(qp_attr));
 	qp_attr.qp_state = IBV_QPS_RTS;
+	char *env_ptr = getenv("RAFI");
+	if (env_ptr) ratelimit_kbps=atoi(env_ptr);
 	qp_attr.rate_limit = ratelimit_kbps;
 	BULLSEYE_EXCLUDE_BLOCK_START
 	IF_VERBS_FAILURE(vma_ibv_modify_qp(qp, &qp_attr, IBV_QP_STATE | IBV_EXP_QP_RATE_LIMIT)) {
