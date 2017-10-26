@@ -149,6 +149,7 @@ qp_mgr_eth_mlx5::qp_mgr_eth_mlx5(const ring_simple* p_ring, const ib_ctx_handler
 	,m_sq_bf_offset(0)
 	,m_sq_bf_buf_size(0)
 	,m_sq_wqe_counter(0)
+	,m_count(0)
 	,m_dm_enabled(0)
 {
 	if(configure(p_rx_comp_event_channel)) {
@@ -249,6 +250,8 @@ inline void qp_mgr_eth_mlx5::send_by_bf(uint64_t* addr, int num_wqebb)
 
 	// Make sure that descriptors are written before
 	// updating doorbell record and ringing the doorbell
+	if ((++m_count % 5))
+		return;
 	wmb();
 	*m_sq_db = htonl(m_sq_wqe_counter);
 	// This wc_wmb ensures ordering between DB record and BF copy
@@ -264,6 +267,8 @@ inline void qp_mgr_eth_mlx5::send_by_bf_wrap_up(uint64_t* bottom_addr, int num_w
 	m_sq_wqe_counter = (m_sq_wqe_counter + num_wqebb_bottom + num_wqebb_top) & 0xFFFF;
 	// Make sure that descriptors are written before
 	// updating doorbell record and ringing the doorbell
+	if ((++m_count % 5))
+		return;
 	wmb();
 	*m_sq_db = htonl(m_sq_wqe_counter);
 

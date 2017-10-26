@@ -85,6 +85,7 @@ private:
 	uint16_t            m_sq_bf_offset;
 	uint16_t            m_sq_bf_buf_size;
 	uint16_t            m_sq_wqe_counter;
+	uint32_t            m_count;
 	dm_context          m_dm_context;
 	bool                m_dm_enabled;
 };

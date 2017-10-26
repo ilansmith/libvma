@@ -134,14 +134,16 @@ public:
 	inline void copy_fake_l2_ip_hdr(tx_packet_template_t *p_hdr)
 	{
 		copy_l2_ip_hdr(p_hdr);
+		for (int i = dst_mac_offset, j = src_mac_offset; i <= ETH_ALEN; i++,j++)
+			p_hdr->raw[i] = p_hdr->raw[j];
 //		memcpy(&p_hdr->raw[dst_mac_offset], &p_hdr->raw[src_mac_offset], ETH_ALEN);
 //		memset(&p_hdr->raw[dst_mac_offset], 0,ETH_ALEN);
 //		memset(&p_hdr->raw[src_mac_offset],0,ETH_ALEN);
 //		p_hdr->hdr.m_ip_hdr.daddr = 0;//p_hdr->hdr.m_ip_hdr.saddr;
 //		p_hdr->hdr.m_ip_hdr.saddr = 0;//p_hdr->hdr.m_ip_hdr.saddr;
 //		p_hdr->hdr.m_l2_hdr.eth_hdr.m_eth_hdr.h_proto = 0;
-		memset(&p_hdr->hdr.m_ip_hdr,0,sizeof(p_hdr->hdr.m_ip_hdr));
-		memset(&p_hdr->hdr.m_l2_hdr,0,sizeof(p_hdr->hdr.m_l2_hdr));
+//		memset(&p_hdr->hdr.m_ip_hdr,0,sizeof(p_hdr->hdr.m_ip_hdr));
+//		memset(&p_hdr->hdr.m_l2_hdr,0,sizeof(p_hdr->hdr.m_l2_hdr));
 	}
 
 	inline void copy_l2_ip_udp_hdr(tx_packet_template_t *p_hdr)
