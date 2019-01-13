@@ -36,7 +36,9 @@
 
 #include <rdma/rdma_cma.h>
 #include <config.h>
-#include <infiniband/verbs.h>
+extern "C" {
+    #include <infiniband/verbs.h>
+}
 #include "vma/util/vtypes.h"
 #if defined(DEFINED_VERBS_VERSION) && (DEFINED_VERBS_VERSION == 2)
 #include <infiniband/verbs_exp.h>
@@ -414,6 +416,7 @@ typedef struct ibv_exp_flow_spec_action_tag_dummy {}    vma_ibv_flow_spec_action
 typedef struct ibv_exp_values                       vma_ibv_clock_info;
 #define vma_ibv_convert_ts_to_ns(info, hw_ts)       ibv_exp_cqe_ts_to_ns(&((info)->clock_info), hw_ts)
 #define vma_ibv_query_clock_info(ctx, clock_info)   ibv_exp_query_values(ctx, IBV_EXP_VALUES_CLOCK_INFO, clock_info)
+#define vma_ibv_query_clock(ctx, clock_info)   ibv_exp_query_values(ctx, IBV_EXP_VALUES_HW_CLOCK, clock_info)
 #endif //DEFINED_IBV_CLOCK_INFO
 
 #endif /* DEFINED_VERBS_VERSION */

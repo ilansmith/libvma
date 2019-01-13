@@ -33,13 +33,19 @@
 
 #ifndef TIME_CONVERTER_PTP_H
 #define TIME_CONVERTER_PTP_H
-
-#include <infiniband/verbs.h>
+extern "C" {
+    #include <infiniband/verbs.h>
+}
 #include "vma/event/timer_handler.h"
 #include <vma/util/sys_vars.h>
 #include "time_converter.h"
 
 #ifdef DEFINED_IBV_CLOCK_INFO
+
+struct phc_time {
+    uint32_t* p_time_h;
+    uint32_t* p_time_l;
+};
 
 class time_converter_ptp : public time_converter
 {
@@ -49,12 +55,22 @@ public:
 
 	inline void               convert_hw_time_to_system_time(uint64_t hwtime, struct timespec* systime);
 	virtual void              handle_timer_expired(void* user_data);
+	int                       mlx5_read_clock(uint64_t *cycles);
+	uint64_t                  rmax_get_ptp_time_ns();
 
 private:
+	unsigned char* serialize_int(unsigned char *buffer, uint32_t value);
+	unsigned char* serialize_long(unsigned char *buffer, uint64_t value);
 	struct ibv_context*       m_p_ibv_context;
 
 	vma_ibv_clock_info        m_clock_values[2];
+	struct phc_time           m_phc_time;
 	int                       m_clock_values_id;
+	int                       m_sock;
+    struct sockaddr_in        m_addr;
+    int                       m_addrlen;
+    int                       m_ptp_fd;
+    clockid_t                 m_ptp_id;
 };
 
 #endif // DEFINED_IBV_CLOCK_INFO
