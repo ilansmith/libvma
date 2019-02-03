@@ -57,6 +57,7 @@ public:
 	virtual void              handle_timer_expired(void* user_data);
 	int                       mlx5_read_clock(uint64_t *cycles);
 	uint64_t                  rmax_get_ptp_time_ns();
+	//void					  get_p_ptp_time(uint32_t **p_p_time_h, uint32_t **p_p_time_l);
 
 private:
 	unsigned char* serialize_int(unsigned char *buffer, uint32_t value);

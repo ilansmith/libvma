@@ -775,6 +775,8 @@ struct __attribute__ ((packed)) vma_api_t {
 	 *
 	 */
 	int (*get_mem_info)(int fd, void **addr, size_t *length, uint32_t *lkey);
+
+	void (*get_phc) (uint32_t **p_p_time_h, uint32_t **p_p_time_l);
 };
 
 

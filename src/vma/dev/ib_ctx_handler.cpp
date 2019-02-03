@@ -110,7 +110,7 @@ m_flow_tag_enabled(false)
 			ibch_logwarn("ptp is not supported for mlx4 devices, reverting to mode TS_CONVERSION_MODE_SYNC (ibv context %p)",
 					m_p_ibv_context);
 		} else {
-			ibch_logwarn("TS_CONVERSION_MODE_PTP");
+			ibch_logwarn("TS_CONVERSION_MODE_PTP clock: %llu", m_p_ibv_device_attr->hca_core_clock);
 			vma_ibv_clock_info clock_info;
 			memset(&clock_info, 0, sizeof(clock_info));
 			int ret = vma_ibv_query_clock_info(m_p_ibv_context, &clock_info);

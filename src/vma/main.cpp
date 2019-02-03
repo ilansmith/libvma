@@ -392,7 +392,7 @@ void print_vma_global_settings()
 	time_t clock = time(NULL);
 	char ofed_version_info[MAX_VERSION_STR_LEN];
 	
-	vlog_printf(VLOG_INFO,"---------------------------------------------------------------------------\n");
+	vlog_printf(VLOG_INFO,"*************************---------------------------------------------------------------------------\n");
 	vlog_printf(VLOG_INFO,"%s\n", vma_version_str);
 	if (VMA_GIT_VERSION[0]) {
 		vlog_printf(VLOG_INFO,"%s\n", "Git: " VMA_GIT_VERSION);
@@ -614,7 +614,9 @@ void print_vma_global_settings()
 	VLOG_PARAM_NUMSTR("TCP CC Algorithm", safe_mce_sys().lwip_cc_algo_mod, MCE_DEFAULT_LWIP_CC_ALGO_MOD, SYS_VAR_TCP_CC_ALGO, lwip_cc_algo_str(safe_mce_sys().lwip_cc_algo_mod));
 	VLOG_PARAM_STRING("Polling Rx on Tx TCP", safe_mce_sys().rx_poll_on_tx_tcp, MCE_DEFAULT_RX_POLL_ON_TX_TCP, SYS_VAR_VMA_RX_POLL_ON_TX_TCP, safe_mce_sys().rx_poll_on_tx_tcp ? "Enabled " : "Disabled");
 	VLOG_PARAM_STRING("Trig dummy send getsockname()", safe_mce_sys().trigger_dummy_send_getsockname, MCE_DEFAULT_TRIGGER_DUMMY_SEND_GETSOCKNAME, SYS_VAR_VMA_TRIGGER_DUMMY_SEND_GETSOCKNAME, safe_mce_sys().trigger_dummy_send_getsockname ? "Enabled " : "Disabled");
-
+	//if (safe_mce_sys().send_phc) {
+		VLOG_PARAM_STRING("PHCL ", safe_mce_sys().send_phc, false, SYS_VAR_SEND_PHC, safe_mce_sys().send_phc ? "Enabled" : "Disabled");
+	//}
 #ifdef VMA_TIME_MEASURE
 	VLOG_PARAM_NUMBER("Time Measure Num Samples", safe_mce_sys().vma_time_measure_num_samples, MCE_DEFAULT_TIME_MEASURE_NUM_SAMPLES, SYS_VAR_VMA_TIME_MEASURE_NUM_SAMPLES);
 	VLOG_STR_PARAM_STRING("Time Measure Dump File", safe_mce_sys().vma_time_measure_filename, MCE_DEFAULT_TIME_MEASURE_DUMP_FILE, SYS_VAR_VMA_TIME_MEASURE_DUMP_FILE, safe_mce_sys().vma_time_measure_filename);

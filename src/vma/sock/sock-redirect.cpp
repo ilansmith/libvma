@@ -626,6 +626,17 @@ int vma_cyclic_buffer_read(int fd, struct vma_completion_cb_t *completion,
 #endif // HAVE_MP_RQ
 }
 
+uint32_t *g_p_timer_h = NULL;
+uint32_t *g_p_timer_l = NULL;
+
+extern "C"
+void vma_get_phc(uint32_t **p_p_time_h, uint32_t **p_p_time_l)
+{
+	vlog_printf(VLOG_ERROR,"here");
+	*p_p_time_h = g_p_timer_h;
+	*p_p_time_l = g_p_timer_l;
+}
+
 extern "C"
 int vma_get_mem_info(int fd, void **addr, size_t *length, uint32_t *lkey)
 {
@@ -1084,6 +1095,7 @@ int getsockopt(int __fd, int __level, int __optname,
 		vma_api->dump_fd_stats = vma_dump_fd_stats;
 		vma_api->vma_cyclic_buffer_read = vma_cyclic_buffer_read;
 		vma_api->get_mem_info = vma_get_mem_info;
+		vma_api->get_phc = vma_get_phc;
 		*((vma_api_t**)__optval) = vma_api;
 		return 0;
 	}

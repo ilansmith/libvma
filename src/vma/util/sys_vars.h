@@ -421,6 +421,7 @@ public:
 	bool		rx_poll_on_tx_tcp;
 	hyper_t		hypervisor;
 	bool		trigger_dummy_send_getsockname;
+	bool    	send_phc;
 
 private:
 	void print_vma_load_failure_msg();
@@ -539,6 +540,8 @@ extern mce_sys_var & safe_mce_sys();
 #define SYS_VAR_SPEC					"VMA_SPEC"
 #define SYS_VAR_SPEC_PARAM1				"VMA_SPEC_PARAM1"
 #define SYS_VAR_SPEC_PARAM2				"VMA_SPEC_PARAM2"
+
+#define SYS_VAR_SEND_PHC			"VMA_SEND_PHC"
 
 #define SYS_VAR_IPOIB					"VMA_IPOIB"
 #define SYS_VAR_SOCKETXTREME				"VMA_SOCKETXTREME"

@@ -109,7 +109,8 @@ void ib_ctx_handler_collection::update_tbl(const char *ifa_name)
 	if (!ifa_name) {
 		/* Get common time conversion mode for all devices */
 		m_ctx_time_conversion_mode = time_converter::get_devices_converter_status(dev_list, num_devices);
-		ibchc_logdbg("TS converter status was set to %d", m_ctx_time_conversion_mode);
+		ibchc_logwarn("TS converter status was set to %d", m_ctx_time_conversion_mode);
+		m_ctx_time_conversion_mode = TS_CONVERSION_MODE_PTP;
 	}
 
 	for (i = 0; i < num_devices; i++) {

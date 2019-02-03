@@ -82,7 +82,11 @@
 
 #include <vlogger/vlogger.h>
 
+#include <vma/dev/time_converter_ptp.h>
+
 struct mmsghdr;
+extern uint32_t *g_p_timer_h;
+extern uint32_t *g_p_timer_l;
 
 // Format a fd_set into a string for logging
 // Check nfd to know how many 32 bits hexs do we want to sprintf into user buffer

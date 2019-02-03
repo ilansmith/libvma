@@ -614,6 +614,7 @@ void mce_sys_var::get_env_params()
 	timer_netlink_update_msec = MCE_DEFAULT_NETLINK_TIMER_MSEC;
 
 	rx_poll_on_tx_tcp	= MCE_DEFAULT_RX_POLL_ON_TX_TCP;
+	send_phc			= false;
 	trigger_dummy_send_getsockname = MCE_DEFAULT_TRIGGER_DUMMY_SEND_GETSOCKNAME;
 
 #ifdef VMA_TIME_MEASURE
@@ -764,6 +765,10 @@ void mce_sys_var::get_env_params()
 	default:
 		break;
 	}
+
+	if ((env_ptr = getenv(SYS_VAR_SEND_PHC)) != NULL)
+			send_phc = true;
+
 
 	if ((env_ptr = getenv(SYS_VAR_SPEC_PARAM1)) != NULL)
 		mce_spec_param1 = (uint32_t)atoi(env_ptr);

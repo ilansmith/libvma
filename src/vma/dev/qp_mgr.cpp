@@ -751,6 +751,7 @@ uint32_t qp_mgr::is_ratelimit_change(struct vma_rate_limit_t &rate_limit)
 
 bool qp_mgr::is_ratelimit_supported(vma_ibv_device_attr *attr, struct vma_rate_limit_t &rate_limit)
 {
+	return true;
 #ifdef DEFINED_IBV_EXP_QP_RATE_LIMIT
 	if (!(attr->comp_mask & IBV_EXP_DEVICE_ATTR_PACKET_PACING_CAPS))
 		return false;
