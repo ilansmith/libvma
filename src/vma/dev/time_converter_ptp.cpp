@@ -251,8 +251,27 @@ void time_converter_ptp::handle_timer_expired(void* user_data) {
 		curr = serialize_int(curr, m_clock_values[m_clock_values_id].clock_info.mult);
 		ret = vma_ibv_query_clock(m_p_ibv_context, &m_clock_values[m_clock_values_id]);
 		uint64_t verbs_ts = vma_ibv_convert_ts_to_ns(&m_clock_values[m_clock_values_id], m_clock_values[m_clock_values_id].hwclock);
-		curr = serialize_long(curr, verbs_ts);
-		curr = serialize_long(curr, m_clock_values[m_clock_values_id].hwclock);
+		uint64_t ts = m_clock_values[m_clock_values_id].clock_info.nsec += 1000000000;
+		uint64_t delta;
+
+		//delta = (ts & m_clock_values[index].clock_info.mask) - m_clock_values[index].clock_info.cycles;
+		delta = (ts - m_clock_values[m_clock_values_id].clock_info.nsec);
+		uint64_t cyc = m_clock_values[m_clock_values_id].clock_info.cycles;
+
+		/*
+		 * delta should be within half the mask range otherwise
+		 * below formula isn't correct.
+		 */
+		if (0/*elta > m_clock_values[m_clock_values_id].clock_info.mask / 2*/) {
+			delta = (m_clock_values[m_clock_values_id].clock_info.nsec - ts);
+			cyc -= ((delta << m_clock_values[m_clock_values_id].clock_info.shift) / m_clock_values[m_clock_values_id].clock_info.mult);
+		}
+		else {
+			cyc += ((delta << m_clock_values[m_clock_values_id].clock_info.shift) / m_clock_values[m_clock_values_id].clock_info.mult);
+		}
+
+		curr = serialize_long(curr, ts);
+		curr = serialize_long(curr, cyc);
 
 		ret = orig_os_api.sendto(m_sock, (void*)&buff[0], 56, 0, (struct sockaddr *)&m_addr, m_addrlen);
 
@@ -267,7 +286,7 @@ void time_converter_ptp::handle_timer_expired(void* user_data) {
 					m_clock_values[m_clock_values_id].clock_info.shift,
 					m_clock_values[m_clock_values_id].clock_info.mult);
 
-		ibchtc_logerr("HW cycles: %llu Time: %llu:", m_clock_values[m_clock_values_id].hwclock, verbs_ts);
+		ibchtc_logdbg("HW cycles: %llu Time: %llu:", m_clock_values[m_clock_values_id].hwclock, verbs_ts);
 	}
 
 	return;
