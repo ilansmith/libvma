@@ -7,10 +7,10 @@
 	dh $@
 
 build: build-debug
-	./configure --with-ofed=/usr --prefix=/usr --libdir=/usr/lib --includedir=/usr/include --sysconfdir=/etc
+	./configure --with-dpcp --with-ofed=/usr --prefix=/usr --libdir=/usr/lib --includedir=/usr/include --sysconfdir=/etc
 
 build-debug:
-	./configure --enable-opt-log=none --with-ofed=/usr --prefix=/usr --libdir=/usr/lib --includedir=/usr/include --sysconfdir=/etc
+	./configure --with-dpcp --enable-opt-log=none --with-ofed=/usr --prefix=/usr --libdir=/usr/lib --includedir=/usr/include --sysconfdir=/etc
 	make
 	cp -f src/vma/.libs/libvma.so libvma-debug.so
 	make clean

@@ -13,7 +13,7 @@ echo "Running ./autogen.sh ..."
 ./autogen.sh > $LOG_FILE 2>&1
 
 echo "Running ./configure ..."
-./configure >> $LOG_FILE 2>&1
+./configure --with-dpcp >> $LOG_FILE 2>&1
 if [ $? -ne 0 ]; then
 	echo "configure failed! see $LOG_FILE"
 	cd $BASE_DIR

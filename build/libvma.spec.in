@@ -64,12 +64,12 @@ export revision=1
 #export CFLAGS CXXFLAGS LDFLAGS
 export CXXFLAGS='%{optflags}'
 
-%configure --with-ofed=%{ofed_dir} --enable-opt-log=none
+%configure --with-dpcp --with-ofed=%{ofed_dir} --enable-opt-log=none
 %{pmake}
 cp -f src/vma/.libs/%{name}.so %{name}-debug.so
 %{pmake} clean
 
-%configure --with-ofed=%{ofed_dir} --docdir=%{_docdir}/%{name}-%{version}
+%configure --with-dpcp --with-ofed=%{ofed_dir} --docdir=%{_docdir}/%{name}-%{version}
 %{pmake}
 
 %install

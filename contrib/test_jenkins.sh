@@ -52,16 +52,16 @@ jenkins_opt_exit=${jenkins_opt_exit:="6"}
 #
 jenkins_test_build=${jenkins_test_build:="yes"}
 
-jenkins_test_compiler=${jenkins_test_compiler:="yes"}
+jenkins_test_compiler=${jenkins_test_compiler:="no"}
 jenkins_test_rpm=${jenkins_test_rpm:="yes"}
-jenkins_test_cov=${jenkins_test_cov:="yes"}
-jenkins_test_cppcheck=${jenkins_test_cppcheck:="yes"}
-jenkins_test_csbuild=${jenkins_test_csbuild:="yes"}
-jenkins_test_run=${jenkins_test_run:="yes"}
-jenkins_test_gtest=${jenkins_test_gtest:="yes"}
-jenkins_test_vg=${jenkins_test_vg:="yes"}
+jenkins_test_cov=${jenkins_test_cov:="no"}
+jenkins_test_cppcheck=${jenkins_test_cppcheck:="no"}
+jenkins_test_csbuild=${jenkins_test_csbuild:="no"}
+jenkins_test_run=${jenkins_test_run:="no"}
+jenkins_test_gtest=${jenkins_test_gtest:="no"}
+jenkins_test_vg=${jenkins_test_vg:="no"}
 jenkins_test_style=${jenkins_test_style:="no"}
-jenkins_test_tool=${jenkins_test_tool:="yes"}
+jenkins_test_tool=${jenkins_test_tool:="no"}
 
 
 echo Starting on host: $(hostname)
